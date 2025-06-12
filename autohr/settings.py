@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "ai_analysis",
+    "calendar_app",
+    "core",
+    "resume",
 ]
 
 MIDDLEWARE = [
