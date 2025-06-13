@@ -1,5 +1,6 @@
 import csv
 import io
+import logging
 
 import openpyxl
 from django.contrib import messages
@@ -15,11 +16,13 @@ from reportlab.pdfbase import pdfmetrics, pdfutils
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from ai_analysis.services.analysis_engine import AnalysisEngine
 from core.models import Application
 
 from .forms import ResumeUploadForm
 from .models import Resume
 
+logger = logging.getLogger(__name__)
 
 def upload_resume(request, application_id=None):
     application = None
@@ -36,20 +39,50 @@ def upload_resume(request, application_id=None):
                     resume.candidate = application.candidate
                     resume.application = application
                 else:
-                    # Если нет связанной заявки, нужно создать кандидата
-                    # Это для случая прямой загрузки резюме
                     messages.error(request, 'Необходимо сначала подать заявку на вакансию.')
                     return redirect('core:job_list')
                 
                 resume.save()
                 
-                # Запускаем задачу обработки резюме (пока просто меняем статус)
-                resume.status = 'processing'
-                resume.save()
+                # Пытаемся запустить AI-анализ (опционально)
+                try:
+                    from ai_analysis.services.analysis_engine import \
+                        AnalysisEngine
+                    
+                    resume.status = 'processing'
+                    resume.save()
+                    
+                    analysis_engine = AnalysisEngine()
+                    analysis_result = analysis_engine.analyze_resume(resume.id)
+                    
+                    if analysis_result['success']:
+                        messages.success(request, 'Резюме успешно загружено и проанализировано!')
+                        
+                        # Сопоставление с вакансией
+                        if application:
+                            match_result = analysis_engine.match_candidate_with_job(
+                                resume.id, application.job.id
+                            )
+                            if match_result['success']:
+                                application.ai_score = match_result['overall_score']
+                                application.ai_feedback = match_result['recommendation']
+                                application.save()
+                    else:
+                        messages.warning(request, 'Резюме загружено, но AI-анализ не удался.')
+                        
+                except ImportError:
+                    # AI библиотеки не установлены
+                    resume.status = 'uploaded'
+                    resume.save()
+                    messages.success(request, 'Резюме успешно загружено! (AI-анализ недоступен)')
+                    
+                except Exception as e:
+                    # Ошибка AI-анализа
+                    resume.status = 'error'
+                    resume.processing_error = str(e)
+                    resume.save()
+                    messages.success(request, f'Резюме загружено! AI-анализ будет выполнен позже. ({str(e)[:100]})')
                 
-                messages.success(request, 'Резюме успешно загружено! Начинается обработка.')
-                
-                # Перенаправляем в зависимости от контекста
                 if application:
                     return redirect('core:application_list')
                 else:
@@ -66,6 +99,44 @@ def upload_resume(request, application_id=None):
         'form': form,
         'application': application
     })
+
+
+def reprocess_resume(request, resume_id):
+    """Повторная обработка резюме"""
+    if request.method == 'POST':
+        try:
+            resume = get_object_or_404(Resume, id=resume_id)
+            
+            # Запускаем повторный анализ
+            analysis_engine = AnalysisEngine()
+            resume.status = 'processing'
+            resume.processing_error = ''
+            resume.save()
+            
+            analysis_result = analysis_engine.analyze_resume(resume_id)
+            
+            if analysis_result['success']:
+                messages.success(request, 'Резюме успешно переобработано!')
+                
+                # Если есть связанная заявка, обновляем сопоставление
+                if resume.application:
+                    match_result = analysis_engine.match_candidate_with_job(
+                        resume_id, 
+                        resume.application.job.id
+                    )
+                    
+                    if match_result['success']:
+                        resume.application.ai_score = match_result['overall_score']
+                        resume.application.ai_feedback = match_result['recommendation']
+                        resume.application.save()
+            else:
+                messages.error(request, f'Ошибка при переобработке: {analysis_result.get("error")}')
+        
+        except Exception as e:
+            messages.error(request, f'Ошибка: {str(e)}')
+    
+    return redirect('resume:resume_detail', pk=resume_id)
+
 
 
 def export_resumes_excel(request):

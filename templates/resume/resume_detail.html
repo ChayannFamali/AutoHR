@@ -55,12 +55,16 @@
                             Скачать
                         </a>
                         {% if resume.status == 'uploaded' or resume.status == 'error' %}
-                            <button type="button" class="btn btn-outline-warning">
-                                <i class="fas fa-redo me-1"></i>
-                                Повторить анализ
-                            </button>
+                            <form method="post" action="{% url 'resume:reprocess_resume' resume.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-warning"
+                                        data-confirm="Повторить AI-анализ резюме?">
+                                    <i class="fas fa-redo me-1"></i>
+                                    Повторить анализ
+                                </button>
+                            </form>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-danger" 
+                        <button type="button" class="btn btn-outline-danger"
                                 data-confirm="Вы уверены, что хотите удалить это резюме?">
                             <i class="fas fa-trash me-1"></i>
                             Удалить

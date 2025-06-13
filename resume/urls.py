@@ -18,4 +18,5 @@ urlpatterns = [
     path('export/excel/', views.export_resumes_excel, name='export_resumes_excel'),
     path('export/csv/', views.export_resumes_csv, name='export_resumes_csv'),
     path('export/pdf/', views.export_resumes_pdf, name='export_resumes_pdf'),
+    path('<int:resume_id>/reprocess/', views.reprocess_resume, name='reprocess_resume'),
 ]

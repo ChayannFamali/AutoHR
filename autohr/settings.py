@@ -147,3 +147,23 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # Настройки сессий
 SESSION_COOKIE_AGE = 86400  # 24 часа
 SESSION_SAVE_EVERY_REQUEST = True
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'ai_analysis': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

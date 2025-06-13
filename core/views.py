@@ -1,3 +1,5 @@
+from venv import logger
+
 import openpyxl
 from django.contrib import messages
 from django.db.models import Q
@@ -8,6 +10,7 @@ from django.views.generic import CreateView, DetailView, ListView
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from notifications.services import NotificationService
+from resume.models import Resume
 
 from .forms import ApplicationForm
 from .models import Application, Candidate, Job
@@ -126,6 +129,45 @@ def apply_for_job(request, job_id):
                 )
                 
                 # Отправляем уведомления
+                # Проверяем есть ли у кандидата обработанные резюме
+                existing_resumes = Resume.objects.filter(
+                    candidate=candidate,
+                    status='processed'
+                ).order_by('-uploaded_at')
+
+                if existing_resumes.exists():
+                    # Используем последнее резюме для AI-анализа
+                    latest_resume = existing_resumes.first()
+                    
+                    try:
+                        from ai_analysis.services.analysis_engine import \
+                            AnalysisEngine
+                        analysis_engine = AnalysisEngine()
+                        
+                        match_result = analysis_engine.match_candidate_with_job(
+                            latest_resume.id, 
+                            job.id
+                        )
+                        
+                        if match_result['success']:
+                            application.ai_score = match_result['overall_score']
+                            application.ai_feedback = match_result['recommendation']
+                            application.save()
+                            
+                            messages.success(
+                                request, 
+                                f'Заявка отправлена! AI оценка соответствия: {application.ai_score:.2f}'
+                            )
+                        else:
+                            messages.success(request, 'Заявка отправлена! Загрузите резюме для AI-анализа.')
+                    
+                    except Exception as ai_error:
+                        logger.error(f"AI matching error: {str(ai_error)}")
+                        messages.success(request, 'Заявка отправлена! Загрузите резюме для AI-анализа.')
+                else:
+                    messages.success(request, 'Заявка отправлена! Загрузите резюме для AI-анализа.')
+
+                # Отправляем уведомления
                 try:
                     from notifications.services import NotificationService
 
@@ -147,8 +189,7 @@ def apply_for_job(request, job_id):
                     )
                 except Exception as e:
                     print(f"Ошибка отправки уведомлений: {e}")
-                
-                messages.success(request, 'Ваша заявка успешно отправлена! Теперь вы можете загрузить резюме.')
+
                 return redirect('resume:upload_resume_for_application', application_id=application.id)
                 
             except Exception as e:
