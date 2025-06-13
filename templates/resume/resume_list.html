@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Резюме кандидатов - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2">
+                <i class="fas fa-file-pdf me-2 text-primary"></i>
+                База резюме
+            </h1>
+            <p class="text-muted">Управление резюме кандидатов с ИИ-анализом</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="btn-group" role="group">
+                <a href="{% url 'resume:upload_resume' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    Загрузить резюме
+                </a>
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" 
+                        title="Обновить данные">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-1"></i>
+                        Экспорт
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Excel</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-csv me-2"></i>CSV</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>PDF отчет</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Статус обработки</label>
+                            <select name="status" class="form-select">
+                                <option value="">Все статусы</option>
+                                <option value="uploaded" {% if request.GET.status == 'uploaded' %}selected{% endif %}>
+                                    Загружено
+                                </option>
+                                <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>
+                                    Обрабатывается
+                                </option>
+                                <option value="processed" {% if request.GET.status == 'processed' %}selected{% endif %}>
+                                    Обработано
+                                </option>
+                                <option value="error" {% if request.GET.status == 'error' %}selected{% endif %}>
+                                    Ошибка
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Язык</label>
+                            <select name="language" class="form-select">
+                                <option value="">Все языки</option>
+                                <option value="ru" {% if request.GET.language == 'ru' %}selected{% endif %}>Русский</option>
+                                <option value="en" {% if request.GET.language == 'en' %}selected{% endif %}>English</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Кандидат</label>
+                            <input type="text" name="candidate" class="form-control" 
+                                   placeholder="Имя или email"
+                                   value="{{ request.GET.candidate }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i>
+                                Фильтр
+                            </button>
+                            <a href="{% url 'resume:resume_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-primary">
+                                <i class="fas fa-file-pdf fa-2x"></i>
+                            </div>
+                            <div class="mt-2">
+                                <div class="fw-bold">{{ resumes|length }}</div>
+                                <small class="text-muted">Всего</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-success">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div class="mt-2">
+                                <div class="fw-bold">-</div>
+                                <small class="text-muted">Обработано</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-warning">
+                                <i class="fas fa-cog fa-2x"></i>
+                            </div>
+                            <div class="mt-2">
+                                <div class="fw-bold">-</div>
+                                <small class="text-muted">В обработке</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    {% if resumes %}
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Кандидат</th>
+                            <th>Файл</th>
+                            <th>Язык</th>
+                            <th>Навыки</th>
+                            <th>Опыт</th>
+                            <th>Статус</th>
+                            <th>Дата загрузки</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resume in resumes %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-2">
+                                            {{ resume.candidate.first_name.0 }}{{ resume.candidate.last_name.0 }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ resume.candidate.full_name }}</div>
+                                            <small class="text-muted">{{ resume.candidate.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-{% if resume.is_pdf %}pdf text-danger{% else %}word text-primary{% endif %} me-2"></i>
+                                        <div>
+                                            <div class="fw-bold">{{ resume.original_filename|truncatechars:25 }}</div>
+                                            <small class="text-muted">{{ resume.file_size|filesizeformat }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {% if resume.language == 'ru' %}
+                                            <i class="fas fa-flag me-1"></i>RU
+                                        {% elif resume.language == 'en' %}
+                                            <i class="fas fa-flag me-1"></i>EN
+                                        {% else %}
+                                            <i class="fas fa-globe me-1"></i>AUTO
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if resume.skills %}
+                                        <div class="skills-preview">
+                                            {% for skill in resume.skills|slice:":3" %}
+                                                <span class="badge bg-light text-dark me-1">{{ skill }}</span>
+                                            {% endfor %}
+                                            {% if resume.skills|length > 3 %}
+                                                <span class="text-muted small">+{{ resume.skills|length|add:"-3" }} еще</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if resume.experience_years %}
+                                        <span class="fw-bold">{{ resume.experience_years }}</span>
+                                        <small class="text-muted">лет</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if resume.status == 'uploaded' %}bg-secondary
+                                        {% elif resume.status == 'processing' %}bg-warning text-dark
+                                        {% elif resume.status == 'processed' %}bg-success
+                                        {% elif resume.status == 'error' %}bg-danger
+                                        {% endif %}">
+                                        {% if resume.status == 'processing' %}
+                                            <i class="fas fa-cog fa-spin me-1"></i>
+                                        {% elif resume.status == 'processed' %}
+                                            <i class="fas fa-check me-1"></i>
+                                        {% elif resume.status == 'error' %}
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-clock me-1"></i>
+                                        {% endif %}
+                                        {{ resume.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ resume.uploaded_at|date:"d.m.Y" }}</div>
+                                    <small class="text-muted">{{ resume.uploaded_at|time:"H:i" }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'resume:resume_detail' resume.pk %}" 
+                                           class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Просмотр">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ resume.file.url }}" target="_blank" 
+                                           class="btn btn-outline-info" data-bs-toggle="tooltip" title="Скачать">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        {% if resume.status == 'uploaded' or resume.status == 'error' %}
+                                            <button type="button" class="btn btn-outline-warning" 
+                                                    data-bs-toggle="tooltip" title="Повторить анализ">
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-bs-toggle="tooltip" title="Удалить"
+                                                data-confirm="Вы уверены, что хотите удалить это резюме?">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        
+        {% if is_paginated %}
+            <nav aria-label="Пагинация резюме" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                <h4>Резюме пока не загружены</h4>
+                <p class="text-muted">Загруженные резюме будут отображаться здесь</p>
+                <a href="{% url 'resume:upload_resume' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    Загрузить первое резюме
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.skills-preview {
+    max-width: 200px;
+}
+
+.skills-preview .badge {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
+}
+</style>
+{% endblock %}

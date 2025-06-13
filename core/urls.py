@@ -10,4 +10,5 @@ urlpatterns = [
     path('jobs/<int:pk>/', views.JobDetailView.as_view(), name='job_detail'),
     path('jobs/<int:job_id>/apply/', views.apply_for_job, name='apply_job'),
     path('applications/', views.ApplicationListView.as_view(), name='application_list'),
+    path('applications/export/', views.export_applications_excel, name='export_applications'),  # Новый URL
 ]

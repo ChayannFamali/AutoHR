@@ -1,0 +1,484 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Собеседование с {{ interview.candidate.full_name }} - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'calendar_app:interview_list' %}">Собеседования</a>
+            </li>
+            <li class="breadcrumb-item active">
+                {{ interview.candidate.full_name }} - {{ interview.scheduled_at|date:"d.m.Y H:i" }}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        
+        <div class="col-lg-8">
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h3 class="mb-1">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                Собеседование
+                            </h3>
+                            <p class="text-muted mb-0">
+                                {{ interview.scheduled_at|date:"d F Y г." }} в {{ interview.scheduled_at|time:"H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge fs-6
+                                {% if interview.status == 'scheduled' %}bg-warning text-dark
+                                {% elif interview.status == 'confirmed' %}bg-success
+                                {% elif interview.status == 'completed' %}bg-info
+                                {% elif interview.status == 'cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ interview.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="btn-group mb-3" role="group">
+                        {% if interview.status == 'scheduled' %}
+                            <button type="button" class="btn btn-success">
+                                <i class="fas fa-check me-1"></i>
+                                Подтвердить
+                            </button>
+                            <button type="button" class="btn btn-warning">
+                                <i class="fas fa-edit me-1"></i>
+                                Перенести
+                            </button>
+                            <button type="button" class="btn btn-danger" data-confirm="Вы уверены, что хотите отменить собеседование?">
+                                <i class="fas fa-times me-1"></i>
+                                Отменить
+                            </button>
+                        {% elif interview.status == 'confirmed' %}
+                            <button type="button" class="btn btn-primary">
+                                <i class="fas fa-play me-1"></i>
+                                Начать собеседование
+                            </button>
+                            <button type="button" class="btn btn-warning">
+                                <i class="fas fa-edit me-1"></i>
+                                Перенести
+                            </button>
+                        {% elif interview.status == 'completed' %}
+                            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                                <i class="fas fa-edit me-1"></i>
+                                Редактировать отзыв
+                            </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-secondary">
+                            <i class="fas fa-envelope me-1"></i>
+                            Отправить напоминание
+                        </button>
+                    </div>
+
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Детали собеседования</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Тип:</td>
+                                    <td>{{ interview.interview_type.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Формат:</td>
+                                    <td>
+                                        {% if interview.format == 'online' %}
+                                            <i class="fas fa-video me-1 text-primary"></i>Онлайн
+                                        {% elif interview.format == 'offline' %}
+                                            <i class="fas fa-building me-1 text-info"></i>Офлайн
+                                        {% elif interview.format == 'phone' %}
+                                            <i class="fas fa-phone me-1 text-success"></i>Телефон
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Длительность:</td>
+                                    <td>{{ interview.duration_minutes }} минут</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Интервьюер:</td>
+                                    <td>{{ interview.interviewer.get_full_name|default:interview.interviewer.username }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Место проведения</h6>
+                            {% if interview.location %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    {{ interview.location }}
+                                    {% if interview.format == 'online' %}
+                                        <div class="mt-2">
+                                            <a href="{{ interview.location }}" target="_blank" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-external-link-alt me-1"></i>
+                                                Присоединиться
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-muted">Место не указано</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Информация о кандидате
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar-circle bg-primary text-white me-3" style="width: 60px; height: 60px; font-size: 24px;">
+                                    {{ interview.candidate.first_name.0 }}{{ interview.candidate.last_name.0 }}
+                                </div>
+                                <div>
+                                    <h4 class="mb-1">{{ interview.candidate.full_name }}</h4>
+                                    <p class="text-muted mb-0">{{ interview.candidate.email }}</p>
+                                    {% if interview.candidate.phone %}
+                                        <p class="text-muted mb-0">{{ interview.candidate.phone }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Контактная информация</h6>
+                            <div class="mb-2">
+                                <i class="fas fa-envelope me-2 text-muted"></i>
+                                <a href="mailto:{{ interview.candidate.email }}">{{ interview.candidate.email }}</a>
+                            </div>
+                            {% if interview.candidate.phone %}
+                                <div class="mb-2">
+                                    <i class="fas fa-phone me-2 text-muted"></i>
+                                    <a href="tel:{{ interview.candidate.phone }}">{{ interview.candidate.phone }}</a>
+                                </div>
+                            {% endif %}
+                            {% if interview.candidate.linkedin_url %}
+                                <div class="mb-2">
+                                    <i class="fab fa-linkedin me-2 text-muted"></i>
+                                    <a href="{{ interview.candidate.linkedin_url }}" target="_blank">LinkedIn</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-briefcase me-2"></i>
+                        Вакансия
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>
+                                <a href="{% url 'core:job_detail' interview.application.job.pk %}" class="text-decoration-none">
+                                    {{ interview.application.job.title }}
+                                </a>
+                            </h5>
+                            <p class="text-muted">{{ interview.application.job.company.name }}</p>
+                            <p>{{ interview.application.job.description|truncatewords:30 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            {% if interview.application.ai_score %}
+                                <div class="text-center">
+                                    <div class="ai-score-circle" data-score="{{ interview.application.ai_score }}">
+                                        <div class="score-value">{{ interview.application.ai_score|floatformat:1 }}</div>
+                                        <small class="text-muted">AI Score</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            {% if interview.preparation_notes %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            Заметки для подготовки
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {{ interview.preparation_notes|linebreaks }}
+                    </div>
+                </div>
+            {% endif %}
+
+            
+            {% if interview.status == 'completed' and interview.feedback %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Обратная связь
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if interview.rating %}
+                            <div class="mb-3">
+                                <strong>Оценка: </strong>
+                                {% for i in "12345" %}
+                                    <i class="fas fa-star {% if forloop.counter <= interview.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                                <span class="ms-2">({{ interview.rating }}/5)</span>
+                            </div>
+                        {% endif %}
+                        <div>{{ interview.feedback|linebreaks }}</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        
+        <div class="col-lg-4">
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Быстрые действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="mailto:{{ interview.candidate.email }}?subject=Собеседование {{ interview.scheduled_at|date:'d.m.Y H:i' }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-envelope me-1"></i>
+                            Написать email
+                        </a>
+                        {% if interview.candidate.phone %}
+                            <a href="tel:{{ interview.candidate.phone }}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-phone me-1"></i>
+                                Позвонить
+                            </a>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Добавить в календарь
+                        </button>
+                        <a href="{% url 'core:application_list' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-file-alt me-1"></i>
+                            Посмотреть заявку
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">История</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <div class="fw-bold">Собеседование запланировано</div>
+                                <small class="text-muted">{{ interview.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                        </div>
+                        {% if interview.status == 'confirmed' %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-bold">Собеседование подтверждено</div>
+                                    <small class="text-muted">{{ interview.updated_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if interview.status == 'completed' %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-info"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-bold">Собеседование завершено</div>
+                                    <small class="text-muted">{{ interview.completed_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="feedbackModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-comments me-2"></i>
+                    Обратная связь по собеседованию
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                    <div class="mb-3">
+                        <label class="form-label">Оценка кандидата</label>
+                        <div class="rating-input">
+                            {% for i in "12345" %}
+                                <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}">
+                                <label for="star{{ forloop.counter }}" class="fas fa-star"></label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Обратная связь</label>
+                        <textarea class="form-control" rows="5" placeholder="Детальная обратная связь по результатам собеседования">{{ interview.feedback }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Рекомендация</label>
+                        <select class="form-select">
+                            <option value="">Выберите рекомендацию</option>
+                            <option value="hire">Рекомендую к найму</option>
+                            <option value="consider">Рассмотреть</option>
+                            <option value="reject">Не рекомендую</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>
+                    Сохранить отзыв
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.ai-score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(#28a745 0deg, #28a745 calc(var(--score) * 3.6deg), #e9ecef calc(var(--score) * 3.6deg), #e9ecef 360deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    position: relative;
+}
+
+.ai-score-circle::before {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+}
+
+.score-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #28a745;
+    z-index: 1;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    color: #ddd;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-input input:checked ~ label,
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+    color: #ffc107;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Установка значения AI Score для анимации
+    const scoreCircle = document.querySelector('.ai-score-circle');
+    if (scoreCircle) {
+        const score = scoreCircle.dataset.score * 100;
+        scoreCircle.style.setProperty('--score', score);
+    }
+});
+</script>
+{% endblock %}

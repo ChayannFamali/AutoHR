@@ -1,0 +1,534 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Резюме {{ resume.candidate.full_name }} - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'resume:resume_list' %}">Резюме</a>
+            </li>
+            <li class="breadcrumb-item active">{{ resume.candidate.full_name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        
+        <div class="col-lg-8">
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h3 class="mb-1">
+                                <i class="fas fa-file-{% if resume.is_pdf %}pdf text-danger{% else %}word text-primary{% endif %} me-2"></i>
+                                {{ resume.original_filename }}
+                            </h3>
+                            <p class="text-muted mb-0">
+                                Кандидат: {{ resume.candidate.full_name }} • 
+                                Загружено: {{ resume.uploaded_at|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge fs-6
+                                {% if resume.status == 'uploaded' %}bg-secondary
+                                {% elif resume.status == 'processing' %}bg-warning text-dark
+                                {% elif resume.status == 'processed' %}bg-success
+                                {% elif resume.status == 'error' %}bg-danger
+                                {% endif %}">
+                                {{ resume.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group mb-3" role="group">
+                        <a href="{{ resume.file.url }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>
+                            Открыть файл
+                        </a>
+                        <a href="{{ resume.file.url }}" download class="btn btn-outline-primary">
+                            <i class="fas fa-download me-1"></i>
+                            Скачать
+                        </a>
+                        {% if resume.status == 'uploaded' or resume.status == 'error' %}
+                            <button type="button" class="btn btn-outline-warning">
+                                <i class="fas fa-redo me-1"></i>
+                                Повторить анализ
+                            </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-danger" 
+                                data-confirm="Вы уверены, что хотите удалить это резюме?">
+                            <i class="fas fa-trash me-1"></i>
+                            Удалить
+                        </button>
+                    </div>
+
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Размер файла:</td>
+                                    <td>{{ resume.file_size|filesizeformat }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Формат:</td>
+                                    <td>{{ resume.file_extension|upper }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Язык:</td>
+                                    <td>{{ resume.get_language_display }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Дата загрузки:</td>
+                                    <td>{{ resume.uploaded_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% if resume.processed_at %}
+                                    <tr>
+                                        <td class="text-muted">Дата обработки:</td>
+                                        <td>{{ resume.processed_at|date:"d.m.Y H:i" }}</td>
+                                    </tr>
+                                {% endif %}
+                                {% if resume.experience_years %}
+                                    <tr>
+                                        <td class="text-muted">Опыт работы:</td>
+                                        <td>{{ resume.experience_years }} лет</td>
+                                    </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            {% if resume.extracted_text %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-text me-2"></i>
+                            Извлеченный текст
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="extracted-text">
+                            {{ resume.extracted_text|linebreaks|truncatewords:200 }}
+                            {% if resume.extracted_text|wordcount > 200 %}
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-primary btn-sm" id="showFullText">
+                                        <i class="fas fa-expand me-1"></i>
+                                        Показать полный текст
+                                    </button>
+                                </div>
+                                <div class="full-text d-none">
+                                    {{ resume.extracted_text|linebreaks }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            
+            {% if resume.status == 'processed' %}
+                
+                {% if resume.skills %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>
+                                Извлеченные навыки ({{ resume.skills|length }})
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="skills-cloud">
+                                {% for skill in resume.skills %}
+                                    <span class="badge bg-primary me-2 mb-2">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                
+                {% if resume.work_experience %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-briefcase me-2"></i>
+                                Опыт работы
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for job in resume.work_experience %}
+                                <div class="work-item mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-1">{{ job.position|default:"Должность не указана" }}</h6>
+                                            <p class="text-muted mb-1">{{ job.company|default:"Компания не указана" }}</p>
+                                            {% if job.description %}
+                                                <p class="small">{{ job.description|truncatewords:30 }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            {% if job.start_date or job.end_date %}
+                                                <small class="text-muted">
+                                                    {{ job.start_date|default:"?" }} - {{ job.end_date|default:"настоящее время" }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                
+                {% if resume.education %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-graduation-cap me-2"></i>
+                                Образование
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for edu in resume.education %}
+                                <div class="education-item mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-1">{{ edu.institution|default:"Учебное заведение" }}</h6>
+                                            <p class="text-muted mb-1">{{ edu.degree|default:"Степень не указана" }}</p>
+                                            {% if edu.field %}
+                                                <p class="small">{{ edu.field }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            {% if edu.year %}
+                                                <small class="text-muted">{{ edu.year }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                
+                {% if resume.resumeanalysis %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-robot me-2"></i>
+                                ИИ-анализ резюме
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="analysis-metric">
+                                        <div class="metric-label">Полнота резюме</div>
+                                        <div class="metric-value">
+                                            <div class="progress">
+                                                <div class="progress-bar" 
+                                                     style="width: {{ resume.resumeanalysis.completeness_score|floatformat:0 }}%">
+                                                    {{ resume.resumeanalysis.completeness_score|floatformat:1 }}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    {% if resume.resumeanalysis.education_level %}
+                                        <div class="analysis-metric">
+                                            <div class="metric-label">Уровень образования</div>
+                                            <div class="metric-value">
+                                                <span class="badge bg-info">{{ resume.resumeanalysis.education_level }}</span>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if resume.resumeanalysis.key_skills %}
+                                <div class="mt-3">
+                                    <div class="metric-label">Ключевые навыки</div>
+                                    <div class="mt-2">
+                                        {% for skill in resume.resumeanalysis.key_skills %}
+                                            <span class="badge bg-success me-1 mb-1">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if resume.resumeanalysis.experience_summary %}
+                                <div class="mt-3">
+                                    <div class="metric-label">Краткое описание опыта</div>
+                                    <p class="mt-2">{{ resume.resumeanalysis.experience_summary }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            
+            {% if resume.status == 'error' and resume.processing_error %}
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Ошибка обработки
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">{{ resume.processing_error }}</p>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-warning">
+                                <i class="fas fa-redo me-1"></i>
+                                Повторить обработку
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        
+        <div class="col-lg-4">
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Информация о кандидате</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar-circle bg-primary text-white me-3" style="width: 50px; height: 50px; font-size: 18px;">
+                            {{ resume.candidate.first_name.0 }}{{ resume.candidate.last_name.0 }}
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ resume.candidate.full_name }}</div>
+                            <small class="text-muted">{{ resume.candidate.email }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <div class="mb-2">
+                            <i class="fas fa-envelope me-2 text-muted"></i>
+                            <a href="mailto:{{ resume.candidate.email }}">{{ resume.candidate.email }}</a>
+                        </div>
+                        {% if resume.candidate.phone %}
+                            <div class="mb-2">
+                                <i class="fas fa-phone me-2 text-muted"></i>
+                                <a href="tel:{{ resume.candidate.phone }}">{{ resume.candidate.phone }}</a>
+                            </div>
+                        {% endif %}
+                        {% if resume.candidate.location %}
+                            <div class="mb-2">
+                                <i class="fas fa-map-marker-alt me-2 text-muted"></i>
+                                {{ resume.candidate.location }}
+                            </div>
+                        {% endif %}
+                        {% if resume.candidate.linkedin_url %}
+                            <div class="mb-2">
+                                <i class="fab fa-linkedin me-2 text-muted"></i>
+                                <a href="{{ resume.candidate.linkedin_url }}" target="_blank">LinkedIn</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            
+            {% if resume.application %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Связанная заявка</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>
+                            <a href="{% url 'core:job_detail' resume.application.job.pk %}" class="text-decoration-none">
+                                {{ resume.application.job.title }}
+                            </a>
+                        </h6>
+                        <p class="text-muted mb-2">{{ resume.application.job.company.name }}</p>
+                        <div class="mb-2">
+                            <span class="badge bg-primary">{{ resume.application.get_status_display }}</span>
+                        </div>
+                        {% if resume.application.ai_score %}
+                            <div class="mb-2">
+                                <small class="text-muted">AI Score:</small>
+                                <span class="fw-bold">{{ resume.application.ai_score|floatformat:2 }}</span>
+                            </div>
+                        {% endif %}
+                        <small class="text-muted">
+                            Подано: {{ resume.application.applied_at|date:"d.m.Y" }}
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
+
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Быстрые действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="mailto:{{ resume.candidate.email }}?subject=Ваше резюме" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-envelope me-1"></i>
+                            Написать email
+                        </a>
+                        {% if resume.candidate.phone %}
+                            <a href="tel:{{ resume.candidate.phone }}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-phone me-1"></i>
+                                Позвонить
+                            </a>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Запланировать собеседование
+                        </button>
+                        <a href="{% url 'core:application_list' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-list me-1"></i>
+                            Все заявки кандидата
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            
+            {% if resume.status == 'processed' %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Статистика анализа</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 border-end">
+                                <div class="mb-2">
+                                    <i class="fas fa-cogs fa-2x text-primary"></i>
+                                </div>
+                                <div class="fw-bold">{{ resume.skills|length|default:0 }}</div>
+                                <small class="text-muted">Навыков</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <i class="fas fa-briefcase fa-2x text-info"></i>
+                                </div>
+                                <div class="fw-bold">{{ resume.work_experience|length|default:0 }}</div>
+                                <small class="text-muted">Мест работы</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-6 border-end">
+                                <div class="mb-2">
+                                    <i class="fas fa-graduation-cap fa-2x text-success"></i>
+                                </div>
+                                <div class="fw-bold">{{ resume.education|length|default:0 }}</div>
+                                <small class="text-muted">Образование</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <i class="fas fa-file-text fa-2x text-warning"></i>
+                                </div>
+                                <div class="fw-bold">{{ resume.extracted_text|wordcount|default:0 }}</div>
+                                <small class="text-muted">Слов</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.extracted-text {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.skills-cloud .badge {
+    font-size: 0.8rem;
+}
+
+.analysis-metric {
+    margin-bottom: 15px;
+}
+
+.metric-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.metric-value .progress {
+    height: 20px;
+}
+
+.work-item, .education-item {
+    transition: background-color 0.2s;
+}
+
+.work-item:hover, .education-item:hover {
+    background-color: rgba(0,0,0,0.02);
+    border-radius: 5px;
+    padding: 10px;
+    margin: -10px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Показать полный текст
+    const showFullTextBtn = document.getElementById('showFullText');
+    if (showFullTextBtn) {
+        showFullTextBtn.addEventListener('click', function() {
+            const fullText = document.querySelector('.full-text');
+            const extractedText = document.querySelector('.extracted-text');
+            
+            if (fullText.classList.contains('d-none')) {
+                fullText.classList.remove('d-none');
+                extractedText.style.maxHeight = 'none';
+                this.innerHTML = '<i class="fas fa-compress me-1"></i>Скрыть полный текст';
+            } else {
+                fullText.classList.add('d-none');
+                extractedText.style.maxHeight = '300px';
+                this.innerHTML = '<i class="fas fa-expand me-1"></i>Показать полный текст';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

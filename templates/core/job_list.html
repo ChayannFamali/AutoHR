@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Вакансии - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2">
+                <i class="fas fa-briefcase me-2 text-primary"></i>
+                Открытые вакансии
+            </h1>
+            <p class="text-muted">Найдите работу своей мечты с помощью ИИ-анализа</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-secondary active" id="listViewBtn">
+        <i class="fas fa-th-list me-1"></i>
+        Список
+    </button>
+    <button type="button" class="btn btn-outline-secondary" id="cardViewBtn">
+        <i class="fas fa-th me-1"></i>
+        Карточки
+    </button>
+</div>
+
+        </div>
+    </div>
+
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Поиск</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Название вакансии или компании"
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Уровень опыта</label>
+                    <select name="experience" class="form-select">
+                        <option value="">Все уровни</option>
+                        <option value="junior" {% if request.GET.experience == 'junior' %}selected{% endif %}>Junior</option>
+                        <option value="middle" {% if request.GET.experience == 'middle' %}selected{% endif %}>Middle</option>
+                        <option value="senior" {% if request.GET.experience == 'senior' %}selected{% endif %}>Senior</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Удаленная работа</label>
+                    <select name="remote" class="form-select">
+                        <option value="">Все варианты</option>
+                        <option value="true" {% if request.GET.remote == 'true' %}selected{% endif %}>Только удаленно</option>
+                        <option value="false" {% if request.GET.remote == 'false' %}selected{% endif %}>Только в офисе</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search me-1"></i>
+                        Найти
+                    </button>
+                    <a href="{% url 'core:job_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>
+                        Сбросить
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+    {% if jobs %}
+        <div class="row">
+            {% for job in jobs %}
+                <div class="col-12 mb-3">
+                    <div class="card job-card h-100">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="card-title mb-2">
+                                        <a href="{% url 'core:job_detail' job.pk %}" class="job-title">
+                                            {{ job.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="company-name mb-2">
+                                        <i class="fas fa-building me-1"></i>
+                                        {{ job.company.name }}
+                                    </p>
+                                    <p class="card-text text-truncate-2">
+                                        {{ job.description|truncatewords:30 }}
+                                    </p>
+                                    <div class="job-meta mt-3">
+                                        <span class="badge badge-experience me-2">
+                                            {{ job.get_experience_level_display }}
+                                        </span>
+                                        {% if job.remote_work %}
+                                            <span class="badge badge-remote me-2">
+                                                <i class="fas fa-home me-1"></i>
+                                                Удаленно
+                                            </span>
+                                        {% endif %}
+                                        <span class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            {{ job.location }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    {% if job.salary_min or job.salary_max %}
+                                        <div class="salary-range mb-3">
+                                            <i class="fas fa-ruble-sign me-1"></i>
+                                            {% if job.salary_min and job.salary_max %}
+                                                {{ job.salary_min|floatformat:0 }} - {{ job.salary_max|floatformat:0 }}
+                                            {% elif job.salary_min %}
+                                                от {{ job.salary_min|floatformat:0 }}
+                                            {% elif job.salary_max %}
+                                                до {{ job.salary_max|floatformat:0 }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ job.created_at|timesince }} назад
+                                        </small>
+                                    </div>
+                                    <a href="{% url 'core:job_detail' job.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-eye me-1"></i>
+                                        Подробнее
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        
+        {% if is_paginated %}
+            <nav aria-label="Пагинация вакансий">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4>Вакансии не найдены</h4>
+            <p class="text-muted">Попробуйте изменить параметры поиска</p>
+            <a href="{% url 'core:job_list' %}" class="btn btn-primary">
+                Показать все вакансии
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const listViewBtn = document.getElementById('listViewBtn');
+    const cardViewBtn = document.getElementById('cardViewBtn');
+    
+    listViewBtn.addEventListener('click', function() {
+        listViewBtn.classList.add('active');
+        cardViewBtn.classList.remove('active');
+        // Здесь можно добавить логику переключения вида
+        console.log('Переключено на список');
+    });
+    
+    cardViewBtn.addEventListener('click', function() {
+        cardViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        // Здесь можно добавить логику переключения вида
+        console.log('Переключено на карточки');
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}
