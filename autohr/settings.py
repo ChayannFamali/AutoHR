@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'accounts',
     "ai_analysis",
     "calendar_app",
+    "notifications",
     "core",
     "resume",
 ]
@@ -130,3 +132,18 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# Email настройки (для разработки - выводит в консоль)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'AutoHR System <noreply@autohr.com>'
+
+# Пользовательская модель
+AUTH_USER_MODEL = 'accounts.User'
+
+# Настройки аутентификации
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Настройки сессий
+SESSION_COOKIE_AGE = 86400  # 24 часа
+SESSION_SAVE_EVERY_REQUEST = True

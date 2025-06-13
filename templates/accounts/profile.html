@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Профиль - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Профиль пользователя
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="avatar-circle bg-primary text-white mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2rem;">
+                                {{ user.first_name.0 }}{{ user.last_name.0 }}
+                            </div>
+                            <h5>{{ user.get_full_name }}</h5>
+                            <span class="badge bg-{% if user.user_type == 'hr' %}primary{% else %}success{% endif %}">
+                                {{ user.get_user_type_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-8">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ user.email }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Телефон:</strong></td>
+                                    <td>{{ user.phone|default:"Не указан" }}</td>
+                                </tr>
+                                {% if user.is_hr %}
+                                    <tr>
+                                        <td><strong>Компания:</strong></td>
+                                        <td>{{ user.company|default:"Не указана" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Должность:</strong></td>
+                                        <td>{{ user.position|default:"Не указана" }}</td>
+                                    </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Дата регистрации:</strong></td>
+                                    <td>{{ user.date_joined|date:"d.m.Y" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if profile.bio %}
+                        <hr>
+                        <h6>О себе:</h6>
+                        <p>{{ profile.bio }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-1"></i>
+                        Редактировать профиль
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Быстрые действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if user.is_hr %}
+                            <a href="{% url 'core:application_list' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-file-alt me-1"></i>
+                                Заявки
+                            </a>
+                            <a href="{% url 'calendar_app:interview_list' %}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-calendar me-1"></i>
+                                Собеседования
+                            </a>
+                        {% else %}
+                            <a href="{% url 'core:job_list' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-briefcase me-1"></i>
+                                Вакансии
+                            </a>
+                            <a href="{% url 'resume:upload_resume' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-upload me-1"></i>
+                                Загрузить резюме
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

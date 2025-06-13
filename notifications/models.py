@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -44,7 +45,7 @@ class Notification(models.Model):
     notification_type = models.ForeignKey(NotificationType, on_delete=models.CASCADE, verbose_name="Тип уведомления")
     
     # Получатели
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Пользователь")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Пользователь")
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Кандидат")
     email = models.EmailField(blank=True, verbose_name="Email получателя")
     phone = models.CharField(max_length=20, blank=True, verbose_name="Телефон получателя")
@@ -108,7 +109,7 @@ class NotificationTemplate(models.Model):
         return f"{self.notification_type.name} - {self.get_language_display()} ({self.get_channel_display()})"
 
 class NotificationPreference(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь")
     
     # Предпочтения по каналам
     email_enabled = models.BooleanField(default=True, verbose_name="Email уведомления")

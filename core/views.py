@@ -1,11 +1,13 @@
 import openpyxl
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView
 from openpyxl.styles import Alignment, Font, PatternFill
+
+from notifications.services import NotificationService
 
 from .forms import ApplicationForm
 from .models import Application, Candidate, Job
@@ -94,34 +96,70 @@ def apply_for_job(request, job_id):
     if request.method == 'POST':
         form = ApplicationForm(request.POST)
         if form.is_valid():
-            # Создаем или получаем кандидата
-            candidate, created = Candidate.objects.get_or_create(
-                email=form.cleaned_data['email'],
-                defaults={
-                    'first_name': form.cleaned_data['first_name'],
-                    'last_name': form.cleaned_data['last_name'],
-                    'phone': form.cleaned_data.get('phone', ''),
-                }
-            )
-            
-            # Создаем заявку
-            application, created = Application.objects.get_or_create(
-                candidate=candidate,
-                job=job,
-                defaults={
-                    'cover_letter': form.cleaned_data.get('cover_letter', ''),
-                }
-            )
-            
-            if created:
-                messages.success(request, 'Ваша заявка успешно отправлена!')
-                return redirect('core:job_detail', pk=job.id)
-            else:
-                messages.warning(request, 'Вы уже подавали заявку на эту вакансию.')
+            try:
+                # Создаем или получаем кандидата
+                candidate, created = Candidate.objects.get_or_create(
+                    email=form.cleaned_data['email'],
+                    defaults={
+                        'first_name': form.cleaned_data['first_name'],
+                        'last_name': form.cleaned_data['last_name'],
+                        'phone': form.cleaned_data.get('phone', ''),
+                    }
+                )
+                
+                # Проверяем, не подавал ли уже заявку
+                existing_application = Application.objects.filter(
+                    candidate=candidate,
+                    job=job
+                ).first()
+                
+                if existing_application:
+                    messages.warning(request, 'Вы уже подавали заявку на эту вакансию.')
+                    return redirect('core:job_detail', pk=job.id)
+                
+                # Создаем заявку
+                application = Application.objects.create(
+                    candidate=candidate,
+                    job=job,
+                    cover_letter=form.cleaned_data.get('cover_letter', ''),
+                    status='pending'
+                )
+                
+                # Отправляем уведомления
+                try:
+                    from notifications.services import NotificationService
+
+                    # Уведомление кандидату
+                    NotificationService.send_application_confirmation(application)
+                    
+                    # Уведомление HR
+                    hr_message = f'Новая заявка от {candidate.full_name} на вакансию "{job.title}"\n\n'
+                    hr_message += f'Email кандидата: {candidate.email}\n'
+                    hr_message += f'Телефон: {candidate.phone or "Не указан"}\n'
+                    hr_message += f'Дата подачи: {application.applied_at.strftime("%d.%m.%Y %H:%M")}\n\n'
+                    if application.cover_letter:
+                        hr_message += f'Сопроводительное письмо:\n{application.cover_letter}'
+                    
+                    NotificationService.send_hr_notification(
+                        'Новая заявка',
+                        hr_message,
+                        job.created_by.email
+                    )
+                except Exception as e:
+                    print(f"Ошибка отправки уведомлений: {e}")
+                
+                messages.success(request, 'Ваша заявка успешно отправлена! Теперь вы можете загрузить резюме.')
+                return redirect('resume:upload_resume_for_application', application_id=application.id)
+                
+            except Exception as e:
+                messages.error(request, f'Произошла ошибка при отправке заявки: {str(e)}')
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = ApplicationForm()
     
     return render(request, 'core/apply_job.html', {'job': job, 'form': form})
+
 
 class ApplicationListView(ListView):
     model = Application

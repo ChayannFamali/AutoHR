@@ -1,5 +1,6 @@
 import datetime
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -41,7 +42,7 @@ class Interview(models.Model):
     interview_type = models.ForeignKey(InterviewType, on_delete=models.CASCADE, verbose_name="Тип собеседования")
     
     # Участники
-    interviewer = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Интервьюер")
+    interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Интервьюер")
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, verbose_name="Кандидат")
     
     # Время и место
@@ -96,7 +97,7 @@ class InterviewAvailability(models.Model):
         (6, 'Воскресенье'),
     ]
     
-    interviewer = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Интервьюер")
+    interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Интервьюер")
     weekday = models.IntegerField(choices=WEEKDAY_CHOICES, verbose_name="День недели")
     start_time = models.TimeField(verbose_name="Время начала")
     end_time = models.TimeField(verbose_name="Время окончания")
@@ -115,7 +116,7 @@ class InterviewAvailability(models.Model):
             raise ValidationError("Время начала должно быть раньше времени окончания")
 
 class InterviewTimeSlot(models.Model):
-    interviewer = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Интервьюер")
+    interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Интервьюер")
     date = models.DateField(verbose_name="Дата")
     start_time = models.TimeField(verbose_name="Время начала")
     end_time = models.TimeField(verbose_name="Время окончания")

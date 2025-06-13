@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Регистрация - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-5">
+                <img src="{% static 'images/autoHR.png' %}" alt="AutoHR" height="80" class="mb-3">
+                <h2>Добро пожаловать в AutoHR</h2>
+                <p class="text-muted">Выберите тип аккаунта для регистрации</p>
+            </div>
+
+            <div class="row">
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm border-primary">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-user-tie fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="card-title">HR Специалист</h4>
+                            <p class="card-text text-muted">
+                                Для сотрудников HR отделов и рекрутеров
+                            </p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="fas fa-check text-success me-2"></i>Управление вакансиями</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Просмотр заявок</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Планирование собеседований</li>
+                                <li><i class="fas fa-check text-success me-2"></i>AI-анализ кандидатов</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Отчеты и аналитика</li>
+                            </ul>
+                            <div class="mt-auto">
+                                <a href="{% url 'accounts:register_hr' %}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Регистрация HR
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm border-success">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-user fa-3x text-success"></i>
+                            </div>
+                            <h4 class="card-title">Кандидат</h4>
+                            <p class="card-text text-muted">
+                                Для соискателей работы
+                            </p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="fas fa-check text-success me-2"></i>Просмотр вакансий</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Подача заявок</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Загрузка резюме</li>
+                                <li><i class="fas fa-check text-success me-2"></i>AI-анализ резюме</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Отслеживание статуса</li>
+                            </ul>
+                            <div class="mt-auto">
+                                <a href="{% url 'accounts:register_candidate' %}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Регистрация кандидата
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-muted">Уже есть аккаунт?</p>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Войти в систему
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

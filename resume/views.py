@@ -29,16 +29,36 @@ def upload_resume(request, application_id=None):
     if request.method == 'POST':
         form = ResumeUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            resume = form.save(commit=False)
-            if application:
-                resume.candidate = application.candidate
-                resume.application = application
-            resume.save()
-            
-            messages.success(request, 'Резюме успешно загружено!')
-            if application:
-                return redirect('core:application_list')
-            return redirect('resume:resume_list')
+            try:
+                resume = form.save(commit=False)
+                
+                if application:
+                    resume.candidate = application.candidate
+                    resume.application = application
+                else:
+                    # Если нет связанной заявки, нужно создать кандидата
+                    # Это для случая прямой загрузки резюме
+                    messages.error(request, 'Необходимо сначала подать заявку на вакансию.')
+                    return redirect('core:job_list')
+                
+                resume.save()
+                
+                # Запускаем задачу обработки резюме (пока просто меняем статус)
+                resume.status = 'processing'
+                resume.save()
+                
+                messages.success(request, 'Резюме успешно загружено! Начинается обработка.')
+                
+                # Перенаправляем в зависимости от контекста
+                if application:
+                    return redirect('core:application_list')
+                else:
+                    return redirect('resume:resume_list')
+                    
+            except Exception as e:
+                messages.error(request, f'Ошибка при загрузке резюме: {str(e)}')
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = ResumeUploadForm()
     

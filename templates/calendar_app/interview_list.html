@@ -286,7 +286,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="scheduleForm" method="post">
+                <form id="scheduleForm" method="post" action="{% url 'calendar_app:schedule_interview' %}">
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -442,28 +442,74 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleForm.addEventListener('change', updatePreview);
     scheduleForm.addEventListener('input', updatePreview);
     
-    // Отправка формы
-    submitBtn.addEventListener('click', function() {
-        if (scheduleForm.checkValidity()) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
-            
-            // Здесь должна быть отправка AJAX запроса
-            setTimeout(() => {
-                alert('Собеседование запланировано! (Функция в разработке)');
+// Отправка формы
+submitBtn.addEventListener('click', function() {
+    if (scheduleForm.checkValidity()) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
+        
+        // AJAX отправка формы
+        const formData = new FormData(scheduleForm);
+        
+        fetch(scheduleForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
                 modal.hide();
                 scheduleForm.reset();
                 previewDiv.classList.add('d-none');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
-                // Перезагружаем страницу для обновления списка
-                location.reload();
-            }, 1000);
-        } else {
-            scheduleForm.reportValidity();
-        }
-    });
+                
+                // Показываем уведомление
+                showNotification(data.message, 'success');
+                
+                // Перезагружаем страницу через 1 секунду
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при отправке формы', 'error');
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
+        });
+    } else {
+        scheduleForm.reportValidity();
+    }
+});
+
+function showNotification(message, type) {
+    // Простое уведомление
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Автоудаление через 5 секунд
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-child');
+        if (alert) alert.remove();
+    }, 5000);
+}
+
     
     // Сброс формы при закрытии модального окна
     document.getElementById('scheduleModal').addEventListener('hidden.bs.modal', function() {

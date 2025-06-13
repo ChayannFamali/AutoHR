@@ -21,10 +21,13 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('accounts.urls')),
     path('', include('core.urls')),
     path('resume/', include('resume.urls')),
     path('calendar/', include('calendar_app.urls')),
 ]
 
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

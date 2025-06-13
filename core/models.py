@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -39,7 +40,7 @@ class Job(models.Model):
     location = models.CharField(max_length=200, verbose_name="Локация")
     remote_work = models.BooleanField(default=False, verbose_name="Удаленная работа")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', verbose_name="Статус")
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создано пользователем")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Создано пользователем")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
