@@ -10,23 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+from dotenv import load_dotenv
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-dfvzias54kena7_nc%t!*cln_5n((_c&3@yb!2w=x=ddfvaofl"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+DATABASE_URL = os.getenv('DATABASE_URL')
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -136,12 +141,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Email настройки (для разработки - выводит в консоль)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'AutoHR System <noreply@autohr.com>'
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 # EMAIL_HOST = 'smtp.gmail.com'
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your@gmail.com'
-# EMAIL_HOST_PASSWORD = 'your_password'
+# EMAIL_HOST_USER = ''
+# EMAIL_HOST_PASSWORD = ''
 # Пользовательская модель
 AUTH_USER_MODEL = 'accounts.User'
 
