@@ -65,6 +65,11 @@
                                             <i class="fas fa-edit me-1"></i>
                                             Редактировать
                                         </a>
+                                         <button type="button" class="btn btn-outline-danger btn-sm" 
+                onclick="deleteJob({{ job.id }}, '{{ job.title|escapejs }}')">
+            <i class="fas fa-trash me-1"></i>
+            Удалить
+        </button>
                                     </div>
                                 </div>
                             </div>
@@ -86,3 +91,63 @@
     {% endif %}
 </div>
 {% endblock %}
+{% block extra_js %}
+<script>
+function deleteJob(jobId, jobTitle) {
+    if (confirm(`Вы уверены, что хотите удалить вакансию "${jobTitle}"?\n\nЭто действие нельзя отменить.`)) {
+        fetch(`/jobs/${jobId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении', 'error');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-child');
+        if (alert) alert.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}
+

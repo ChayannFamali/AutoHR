@@ -292,6 +292,60 @@ def create_job(request):
         form = JobCreateForm()
     
     return render(request, 'core/create_job.html', {'form': form})
+def job_list(request):
+    """Список всех активных вакансий с фильтрами"""
+    jobs = Job.objects.filter(status='active').select_related('company').order_by('-created_at')
+    
+    # Применяем фильтры
+    search_query = request.GET.get('search')
+    if search_query:
+        jobs = jobs.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(company__name__icontains=search_query)
+        )
+    
+    experience_level = request.GET.get('experience_level')
+    if experience_level:
+        jobs = jobs.filter(experience_level=experience_level)
+    
+    remote_work = request.GET.get('remote_work')
+    if remote_work:
+        is_remote = remote_work == 'true'
+        jobs = jobs.filter(remote_work=is_remote)
+    
+    location = request.GET.get('location')
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+    
+    context = {
+        'jobs': jobs,
+        'search_query': search_query,
+        'selected_experience': experience_level,
+        'selected_remote': remote_work,
+        'selected_location': location,
+    }
+    
+    return render(request, 'core/job_list.html', context)
+@login_required
+@require_http_methods(["POST"])
+def delete_job(request, job_id):
+    """Удаление вакансии"""
+    job = get_object_or_404(Job, id=job_id, created_by=request.user)
+    
+    try:
+        job_title = job.title
+        job.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Вакансия "{job_title}" успешно удалена'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка при удалении: {str(e)}'
+        })
 
 @hr_required  
 def job_list_hr(request):

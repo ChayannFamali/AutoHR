@@ -75,3 +75,24 @@ class JobCreateForm(forms.ModelForm):
         if commit:
             job.save()
         return job
+# core/forms.py
+class JobForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = [
+            'title', 'company', 'description', 'requirements', 
+            'location', 'experience_level', 'remote_work'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'company': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'experience_level': forms.Select(attrs={'class': 'form-select'}),
+            'remote_work': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['company'].queryset = Company.objects.all()
