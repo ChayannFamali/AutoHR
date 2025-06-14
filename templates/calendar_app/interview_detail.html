@@ -17,7 +17,13 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: conic-gradient(#28a745 0deg, #28a745 calc(var(--score) * 3.6deg), #e9ecef calc(var(--score) * 3.6deg), #e9ecef 360deg);
+    /* Исправлено: умножаем на 100 для конвертации в проценты */
+    background: conic-gradient(
+        #28a745 0deg, 
+        #28a745 calc(var(--score) * 100 * 3.6deg), 
+        #e9ecef calc(var(--score) * 100 * 3.6deg), 
+        #e9ecef 360deg
+    );
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -33,13 +39,21 @@
     height: 60px;
     background: white;
     border-radius: 50%;
+    z-index: 1;
 }
 
 .score-value {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: bold;
     color: #28a745;
-    z-index: 1;
+    z-index: 2;
+    position: relative;
+}
+
+.ai-score-circle small {
+    z-index: 2;
+    position: relative;
+    font-size: 10px;
 }
 
 .timeline {
@@ -165,10 +179,12 @@
                                 Перенести
                             </button>
                         {% elif interview.status == 'completed' %}
-                            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#feedbackModal">
-                                <i class="fas fa-edit me-1"></i>
-                                Редактировать отзыв
-                            </button>
+                            {% if can_manage_interviews %}
+                                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                                    <i class="fas fa-edit me-1"></i>
+                                    Редактировать отзыв
+                                </button>
+                            {% endif %}
                         {% endif %}
                         <button type="button" class="btn btn-outline-secondary" onclick="sendReminder({{ interview.id }})">
                             <i class="fas fa-envelope me-1"></i>
@@ -209,21 +225,73 @@
                         </div>
                         <div class="col-md-6">
                             <h6>Место проведения</h6>
-                            {% if interview.location %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-map-marker-alt me-2"></i>
-                                    {{ interview.location }}
-                                    {% if interview.format == 'online' %}
-                                        <div class="mt-2">
-                                            <a href="{{ interview.location }}" target="_blank" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-external-link-alt me-1"></i>
-                                                Присоединиться
-                                            </a>
+                            {% if interview.location and interview.location|length > 0 %}
+                                <div class="alert alert-info location-container">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-{% if interview.format == 'online' %}video{% elif interview.format == 'phone' %}phone{% else %}map-marker-alt{% endif %} me-2 mt-1"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="location-text">{{ interview.location }}</div>
+                                            
+                                            {% if interview.format == 'online' %}
+                                                
+                                                {% if 'http' in interview.location|lower %}
+                                                    <div class="mt-2">
+                                                        <a href="{{ interview.location }}" 
+                                                           target="_blank" 
+                                                           class="btn btn-sm btn-primary me-2" 
+                                                           rel="noopener noreferrer">
+                                                            <i class="fas fa-external-link-alt me-1"></i>
+                                                            Присоединиться
+                                                        </a>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-secondary" 
+                                                                onclick="copyToClipboard('{{ interview.location|escapejs }}')">
+                                                            <i class="fas fa-copy me-1"></i>
+                                                            Копировать
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    <small class="text-muted d-block mt-1">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        Информация для онлайн встречи
+                                                    </small>
+                                                {% endif %}
+                                            {% elif interview.format == 'phone' %}
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Номер для телефонного звонка
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Адрес для встречи
+                                                </small>
+                                            {% endif %}
                                         </div>
-                                    {% endif %}
+                                    </div>
                                 </div>
                             {% else %}
-                                <div class="text-muted">Место не указано</div>
+                                <div class="alert alert-warning location-container">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <div>
+                                            <div class="text-muted">
+                                                {% if interview.format == 'online' %}
+                                                    Ссылка на онлайн встречу не указана
+                                                {% elif interview.format == 'phone' %}
+                                                    Номер телефона не указан
+                                                {% elif interview.format == 'offline' %}
+                                                    Адрес встречи не указан
+                                                {% else %}
+                                                    Место проведения не указано
+                                                {% endif %}
+                                            </div>
+                                            <small class="text-muted">
+                                                Обратитесь к организатору для получения информации
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
                             {% endif %}
                         </div>
                     </div>
@@ -299,8 +367,11 @@
                         <div class="col-md-4">
                             {% if interview.application.ai_score %}
                                 <div class="text-center">
-                                    <div class="ai-score-circle" data-score="{{ interview.application.ai_score }}" style="--score: {{ interview.application.ai_score }}">
-                                        <div class="score-value">{{ interview.application.ai_score|floatformat:1 }}</div>
+                                    
+                                    <div class="ai-score-circle" 
+                                         data-score="{{ interview.application.ai_score }}" 
+                                         style="--score: {{ interview.application.ai_score }}">
+                                        <div class="score-value" id="score-text"></div>
                                         <small class="text-muted">AI Score</small>
                                     </div>
                                 </div>
@@ -510,6 +581,39 @@
 // Глобальная переменная для ID собеседования
 const interviewId = {{ interview.id }};
 
+// Инициализация AI Score при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Исправляем отображение AI Score
+    const scoreCircle = document.querySelector('.ai-score-circle');
+    if (scoreCircle) {
+        const rawScore = parseFloat(scoreCircle.dataset.score);
+        const percentage = (rawScore * 100).toFixed(1); // Конвертируем в проценты
+        
+        // Обновляем текст
+        const scoreText = document.getElementById('score-text');
+        if (scoreText) {
+            scoreText.textContent = percentage + '%';
+        }
+        
+        // Обновляем CSS переменную для правильного отображения круга
+        scoreCircle.style.setProperty('--score', rawScore);
+    }
+
+    // Дополнительная обработка кнопок
+    const buttons = document.querySelectorAll('button, .btn');
+    
+    buttons.forEach(btn => {
+        const btnText = btn.textContent.trim();
+        
+        if (btnText.includes('Отправить напоминание')) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                sendReminder(interviewId);
+            });
+        }
+    });
+});
+
 // Функция для получения CSRF токена
 function getCookie(name) {
     let cookieValue = null;
@@ -586,7 +690,6 @@ function startInterview(interviewId) {
 
 // Открыть модальное окно переноса
 function openRescheduleModal(interviewId) {
-    // Устанавливаем минимальную дату (завтра)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     document.querySelector('#rescheduleModal input[name="date"]').min = tomorrow.toISOString().split('T')[0];
@@ -655,9 +758,15 @@ function saveFeedback(interviewId) {
     });
 }
 
-// Отправить напоминание
+// Отправить напоминание (улучшенная версия)
 function sendReminder(interviewId) {
-    if (confirm('Отправить напоминание кандидату?')) {
+    if (confirm('Отправить напоминание кандидату на email?')) {
+        // Показываем индикатор загрузки
+        const reminderBtn = document.querySelector('button[onclick*="sendReminder"]');
+        const originalText = reminderBtn.innerHTML;
+        reminderBtn.disabled = true;
+        reminderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Отправка...';
+        
         fetch(`/calendar/interviews/${interviewId}/send-reminder/`, {
             method: 'POST',
             headers: {
@@ -667,11 +776,20 @@ function sendReminder(interviewId) {
         })
         .then(response => response.json())
         .then(data => {
-            showNotification(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.message, 'error');
+            }
         })
         .catch(error => {
             console.error('Error:', error);
             showNotification('Произошла ошибка при отправке напоминания', 'error');
+        })
+        .finally(() => {
+            // Восстанавливаем кнопку
+            reminderBtn.disabled = false;
+            reminderBtn.innerHTML = originalText;
         });
     }
 }
@@ -690,6 +808,47 @@ function addToCalendar() {
     
     const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${event.start}/${event.end}&details=${encodeURIComponent(event.description)}`;
     window.open(calendarUrl, '_blank');
+}
+
+// Функция копирования в буфер обмена
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            showNotification('Ссылка скопирована в буфер обмена', 'success');
+        }).catch(function(err) {
+            console.error('Ошибка копирования: ', err);
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('Ссылка скопирована в буфер обмена', 'success');
+        } else {
+            showNotification('Не удалось скопировать ссылку', 'error');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed: ', err);
+        showNotification('Не удалось скопировать ссылку', 'error');
+    }
+    
+    document.body.removeChild(textArea);
 }
 </script>
 {% endblock %}

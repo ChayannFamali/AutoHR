@@ -118,47 +118,47 @@
         
         {% if can_view_sensitive_data %}
         <div class="col-md-6">
-            <h6 class="text-muted mb-3">
-                <i class="fas fa-robot me-2"></i>
-                AI Анализ
-            </h6>
-            {% if application.ai_score %}
-                <div class="d-flex align-items-center mb-3">
-                    <div class="me-3">
-                        <div class="fw-bold text-primary fs-3">{{ application.ai_score|floatformat:1 }}%</div>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="progress mb-1" style="height: 12px;">
-                            {% if application.ai_score >= 80 %}
-                                <div class="progress-bar bg-success" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
-                            {% elif application.ai_score >= 60 %}
-                                <div class="progress-bar bg-warning" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
-                            {% else %}
-                                <div class="progress-bar bg-danger" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted">Соответствие требованиям</small>
-                    </div>
+    <h6 class="text-muted mb-3">
+        <i class="fas fa-robot me-2"></i>
+        AI Анализ
+    </h6>
+    {% if application.ai_score %}
+        <div class="d-flex align-items-center mb-3">
+            <div class="me-3">
+                <div class="fw-bold text-primary fs-3">{% widthratio application.ai_score 1 100 %}%</div>
+            </div>
+            <div class="flex-grow-1">
+                <div class="progress mb-1" style="height: 12px;">
+                    {% if application.ai_score >= 0.8 %}
+                        <div class="progress-bar bg-success" style="width: {% widthratio application.ai_score 1 100 %}%"></div>
+                    {% elif application.ai_score >= 0.6 %}
+                        <div class="progress-bar bg-warning" style="width: {% widthratio application.ai_score 1 100 %}%"></div>
+                    {% else %}
+                        <div class="progress-bar bg-danger" style="width: {% widthratio application.ai_score 1 100 %}%"></div>
+                    {% endif %}
                 </div>
-                
-                {% if application.ai_feedback %}
-                <div class="bg-light p-3 rounded">
-                    <small class="text-muted d-block mb-1">
-                        <i class="fas fa-comment-alt me-1"></i>
-                        Комментарий AI:
-                    </small>
-                    <div class="small">{{ application.ai_feedback|linebreaks }}</div>
-                </div>
-                {% endif %}
-            {% else %}
-                <div class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status">
-                        <span class="visually-hidden">Загрузка...</span>
-                    </div>
-                    <div class="text-muted small">Анализ в процессе...</div>
-                </div>
-            {% endif %}
+                <small class="text-muted">Соответствие требованиям</small>
+            </div>
         </div>
+        
+        {% if application.ai_feedback %}
+        <div class="bg-light p-3 rounded">
+            <small class="text-muted d-block mb-1">
+                <i class="fas fa-comment-alt me-1"></i>
+                Комментарий AI:
+            </small>
+            <div class="small">{{ application.ai_feedback|linebreaks }}</div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <div class="text-muted small">Анализ в процессе...</div>
+        </div>
+    {% endif %}
+</div>
         {% endif %}
     </div>
     

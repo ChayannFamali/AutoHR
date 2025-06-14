@@ -119,41 +119,41 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="text-primary">
-                                <i class="fas fa-calendar-check fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">{{ interviews|length }}</div>
-                                <small class="text-muted">Всего</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-warning">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">{{ today_interviews_count|default:0 }}</div>
-                                <small class="text-muted">Сегодня</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-success">
-                                <i class="fas fa-check-circle fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">{{ completed_interviews_count|default:0 }}</div>
-                                <small class="text-muted">Завершено</small>
-                            </div>
-                        </div>
+<div class="col-md-4">
+    <div class="card bg-light">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-primary">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ total_interviews }}</div>
+                        <small class="text-muted">Всего</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-warning">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ today_interviews }}</div>
+                        <small class="text-muted">Сегодня</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-success">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ completed_interviews }}</div>
+                        <small class="text-muted">Завершено</small>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
     </div>
 
     
@@ -269,41 +269,39 @@
                 </div>
             {% endfor %}
         </div>
+    {% if is_paginated %}
+        <nav aria-label="Пагинация собеседований" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
 
-        
-        {% if is_paginated %}
-            <nav aria-label="Пагинация собеседований" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
-                                <i class="fas fa-angle-left"></i>
-                            </a>
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
                         </li>
                     {% endif %}
+                {% endfor %}
 
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
-                            </li>
-                        {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
-                                <i class="fas fa-angle-right"></i>
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
     {% else %}
         <div class="card">
             <div class="card-body text-center py-5">

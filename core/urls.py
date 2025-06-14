@@ -17,4 +17,5 @@ urlpatterns = [
     path('applications/<int:application_id>/schedule/', views.schedule_interview_for_application, name='schedule_interview_quick'),
     path('applications/<int:application_id>/detail/', views.application_detail, name='application_detail'),
     path('applications/<int:application_id>/add-note/', views.add_note_to_application, name='add_note_to_application'),
+    path('jobs/<int:pk>/edit/', views.JobEditView.as_view(), name='edit_job'),
 ]

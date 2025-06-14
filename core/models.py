@@ -43,7 +43,7 @@ class Job(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Создано пользователем")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+    views_count = models.PositiveIntegerField(default=0, verbose_name="Количество просмотров")
     # Поля для AI анализа
     requirements_embedding = models.JSONField(null=True, blank=True, verbose_name="Embedding требований")
     

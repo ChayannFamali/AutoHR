@@ -9,9 +9,10 @@ from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from accounts.decorators import hr_required
@@ -74,21 +75,21 @@ def add_note_to_application(request, application_id):
             'message': 'У вас нет прав для добавления заметок'
         })
     
-# core/views.py
-class ApplicationListView(LoginRequiredMixin, ListView):
-    model = Application
-    template_name = 'core/application_list.html'
-    context_object_name = 'applications'
-    paginate_by = 20
+# # core/views.py
+# class ApplicationListView(LoginRequiredMixin, ListView):
+#     model = Application
+#     template_name = 'core/application_list.html'
+#     context_object_name = 'applications'
+#     paginate_by = 20
     
-    def get_queryset(self):
-        queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
+#     def get_queryset(self):
+#         queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
         
-        # Если пользователь - кандидат, показываем только его заявки
-        if self.request.user.is_candidate():
-            queryset = queryset.filter(candidate=self.request.user)  # candidate - это User
+#         # Если пользователь - кандидат, показываем только его заявки
+#         if self.request.user.is_candidate():
+#             queryset = queryset.filter(candidate=self.request.user)  # candidate - это User
         
-        return queryset
+#         return queryset
 
 
 @hr_required
@@ -314,6 +315,13 @@ class JobDetailView(DetailView):
     
     def get_queryset(self):
         return Job.objects.filter(status='active').select_related('company')
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        # Увеличиваем счетчик просмотров при каждом обращении
+        obj.views_count += 1
+        obj.save(update_fields=['views_count'])
+        return obj
 
 def apply_for_job(request, job_id):
     job = get_object_or_404(Job, id=job_id, status='active')
@@ -323,14 +331,34 @@ def apply_for_job(request, job_id):
         if form.is_valid():
             try:
                 # Создаем или получаем кандидата
-                candidate, created = Candidate.objects.get_or_create(
-                    email=form.cleaned_data['email'],
-                    defaults={
-                        'first_name': form.cleaned_data['first_name'],
-                        'last_name': form.cleaned_data['last_name'],
-                        'phone': form.cleaned_data.get('phone', ''),
-                    }
-                )
+                if request.user.is_authenticated and request.user.is_candidate():
+                    # Для авторизованных пользователей-кандидатов
+                    candidate, created = Candidate.objects.get_or_create(
+                        user=request.user,
+                        defaults={
+                            'first_name': form.cleaned_data['first_name'],
+                            'last_name': form.cleaned_data['last_name'],
+                            'email': form.cleaned_data['email'],
+                            'phone': form.cleaned_data.get('phone', ''),
+                        }
+                    )
+                    # Обновляем данные кандидата, если они изменились
+                    if not created:
+                        candidate.first_name = form.cleaned_data['first_name']
+                        candidate.last_name = form.cleaned_data['last_name']
+                        candidate.email = form.cleaned_data['email']
+                        candidate.phone = form.cleaned_data.get('phone', '')
+                        candidate.save()
+                else:
+                    # Для неавторизованных пользователей или не-кандидатов
+                    candidate, created = Candidate.objects.get_or_create(
+                        email=form.cleaned_data['email'],
+                        defaults={
+                            'first_name': form.cleaned_data['first_name'],
+                            'last_name': form.cleaned_data['last_name'],
+                            'phone': form.cleaned_data.get('phone', ''),
+                        }
+                    )
                 
                 # Проверяем, не подавал ли уже заявку
                 existing_application = Application.objects.filter(
@@ -350,7 +378,6 @@ def apply_for_job(request, job_id):
                     status='pending'
                 )
                 
-                # Отправляем уведомления
                 # Проверяем есть ли у кандидата обработанные резюме
                 existing_resumes = Resume.objects.filter(
                     candidate=candidate,
@@ -492,4 +519,16 @@ def application_detail(request, application_id):
             'html': html
         })
 
+
+class JobEditView(LoginRequiredMixin, UpdateView):
+    model = Job
+    form_class = JobCreateForm
+    template_name = 'core/edit_job.html'
+    
+    def get_queryset(self):
+        # Пользователь может редактировать только свои вакансии
+        return Job.objects.filter(created_by=self.request.user)
+    
+    def get_success_url(self):
+        return reverse('core:job_list_hr')
 

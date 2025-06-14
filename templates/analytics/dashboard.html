@@ -272,12 +272,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
     // График популярных навыков
+// График популярных навыков
     fetch('{% url "analytics:popular_skills" %}')
         .then(response => response.json())
         .then(data => {
             const ctx = document.getElementById('skillsChart').getContext('2d');
             new Chart(ctx, {
-                type: 'horizontalBar',
+                type: 'bar',  // изменено с 'horizontalBar' на 'bar'
                 data: {
                     labels: data.labels,
                     datasets: [{
@@ -290,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y',
+                    indexAxis: 'y',  // это делает график горизонтальным
                     plugins: {
                         legend: {
                             display: false
@@ -303,8 +304,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+        })
+        .catch(error => {
+            console.error('Error loading skills chart:', error);
         });
-
     // График статусов заявок
     fetch('{% url "analytics:application_status" %}')
         .then(response => response.json())

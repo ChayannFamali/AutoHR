@@ -185,8 +185,13 @@
                                                 {{ application.ai_score|floatformat:2 }}
                                             </div>
                                             <div class="progress" style="width: 60px; height: 8px;">
-                                                <div class="progress-bar" 
-                                                     style="width: {{ application.ai_score|floatformat:0 }}%"></div>
+                                                {% with ai_percentage=application.ai_score|floatformat:0 %}
+                                                <div class="progress-bar 
+                                                    {% if application.ai_score >= 0.8 %}bg-success
+                                                    {% elif application.ai_score >= 0.6 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    style="width: {% widthratio application.ai_score 1 100 %}%"></div>
+                                                {% endwith %}
                                             </div>
                                         </div>
                                     {% else %}
@@ -207,6 +212,8 @@
                                             <i class="fas fa-check me-1"></i>
                                         {% elif application.status == 'rejected' %}
                                             <i class="fas fa-times me-1"></i>
+                                        {% elif application.status == 'interviewed' %}
+                                            <i class="fas fa-user-check me-1"></i>
                                         {% endif %}
                                         {{ application.get_status_display }}
                                     </span>
@@ -430,6 +437,7 @@
 }
 
 .badge-status {
+    padding: 0.5em 0.75em;
     font-size: 0.875em;
 }
 
@@ -447,7 +455,10 @@
     background-color: #28a745;
     color: #fff;
 }
-
+.status-interviewed {
+    background-color: #6f42c1;
+    color: #fff;
+}
 .status-rejected {
     background-color: #dc3545;
     color: #fff;

@@ -3,6 +3,147 @@
 
 {% block title %}Календарь собеседований - AutoHR{% endblock %}
 
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+<style>
+/* Кастомные стили для FullCalendar */
+.fc-toolbar {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.fc-toolbar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.fc-button-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.fc-button-primary:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    opacity: 0.9;
+}
+
+.fc-event {
+    border-radius: 4px;
+    border: none;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+}
+
+.fc-event-scheduled {
+    background-color: #fff8e1;
+    color: #e65100;
+    border-left: 3px solid #ff9800 !important;
+}
+
+.fc-event-confirmed {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    border-left: 3px solid #4caf50 !important;
+}
+
+.fc-event-completed {
+    background-color: #e1f5fe;
+    color: #0277bd;
+    border-left: 3px solid #03a9f4 !important;
+}
+
+.fc-event-cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+    border-left: 3px solid #f44336 !important;
+}
+
+.fc-daygrid-event {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fc-timegrid-event {
+    border-radius: 4px;
+}
+
+.fc-event-title {
+    font-weight: 500;
+}
+
+.fc-event-time {
+    font-weight: 600;
+}
+
+/* Стили для модального окна */
+.modal-lg {
+    max-width: 800px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #0d47a1;
+}
+
+.badge-sm {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+}
+
+/* Стили для карточек ближайших собеседований */
+.interview-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.interview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.border-start {
+    border-left-width: 4px !important;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+    }
+    
+    .fc-button-group {
+        flex-wrap: wrap;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid my-4">
     
@@ -33,28 +174,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <button type="button" class="btn btn-outline-secondary" id="prevMonthBtn">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                        </div>
-                        <div class="col text-center">
-                            <h4 class="mb-0" id="currentMonthYear">Декабрь 2024</h4>
-                        </div>
-                        <div class="col-auto">
-                            <button type="button" class="btn btn-outline-secondary" id="nextMonthBtn">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                        <div class="col-auto">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-outline-primary active" data-view="month">Месяц</button>
-                                <button type="button" class="btn btn-outline-primary" data-view="week">Неделя</button>
-                                <button type="button" class="btn btn-outline-primary" data-view="day">День</button>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="calendar"></div>
                 </div>
             </div>
         </div>
@@ -62,60 +182,6 @@
 
     
     <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-0" id="calendarContainer">
-                    
-                    <div id="monthView" class="calendar-view">
-                        <div class="calendar-grid">
-                            
-                            <div class="calendar-header">
-                                <div class="calendar-day-header">Пн</div>
-                                <div class="calendar-day-header">Вт</div>
-                                <div class="calendar-day-header">Ср</div>
-                                <div class="calendar-day-header">Чт</div>
-                                <div class="calendar-day-header">Пт</div>
-                                <div class="calendar-day-header">Сб</div>
-                                <div class="calendar-day-header">Вс</div>
-                            </div>
-
-                            
-                            <div class="calendar-body" id="monthCalendarBody">
-                                
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    <div id="weekView" class="calendar-view d-none">
-                        <div class="week-view">
-                            <div class="week-header" id="weekHeader">
-                                
-                            </div>
-                            <div class="week-body" id="weekBody">
-                                
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    <div id="dayView" class="calendar-view d-none">
-                        <div class="day-view">
-                            <div class="day-view-header" id="dayHeader">
-                                
-                            </div>
-                            <div class="day-view-body" id="dayBody">
-                                
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    
-    <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
@@ -129,19 +195,21 @@
                         <div class="row">
                             {% for interview in interviews|slice:":6" %}
                                 <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card border-start border-4 
+                                    <div class="card border-start border-4 interview-card
                                         {% if interview.status == 'scheduled' %}border-warning
                                         {% elif interview.status == 'confirmed' %}border-success
-                                        {% else %}border-info{% endif %}">
+                                        {% elif interview.status == 'completed' %}border-info
+                                        {% else %}border-danger{% endif %}">
                                         <div class="card-body py-3">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <div class="interview-time text-primary fw-bold">
                                                     {{ interview.scheduled_at|date:"d.m" }} в {{ interview.scheduled_at|time:"H:i" }}
                                                 </div>
-                                                <span class="badge 
+                                                <span class="badge badge-sm
                                                     {% if interview.status == 'scheduled' %}bg-warning text-dark
                                                     {% elif interview.status == 'confirmed' %}bg-success
-                                                    {% else %}bg-info{% endif %} badge-sm">
+                                                    {% elif interview.status == 'completed' %}bg-info
+                                                    {% else %}bg-danger{% endif %}">
                                                     {{ interview.get_status_display }}
                                                 </span>
                                             </div>
@@ -175,6 +243,10 @@
                             <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                             <h5>Собеседований пока нет</h5>
                             <p class="text-muted">Запланированные собеседования будут отображаться здесь</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Запланировать первое собеседование
+                            </button>
                         </div>
                     {% endif %}
                 </div>
@@ -182,7 +254,6 @@
         </div>
     </div>
 </div>
-
 
 
 <div class="modal fade" id="scheduleModal" tabindex="-1">
@@ -294,689 +365,182 @@
     </div>
 </div>
 
-{% endblock %}
 
-{% block extra_css %}
-<style>
-/* Общие стили календаря */
-.calendar-grid {
-    width: 100%;
-}
-
-.calendar-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.calendar-day-header {
-    padding: 15px 10px;
-    text-align: center;
-    font-weight: 600;
-    color: #495057;
-    border-right: 1px solid #dee2e6;
-}
-
-.calendar-day-header:last-child {
-    border-right: none;
-}
-
-.calendar-body {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(120px, auto);
-}
-
-.calendar-day {
-    border-right: 1px solid #dee2e6;
-    border-bottom: 1px solid #dee2e6;
-    padding: 8px;
-    position: relative;
-    min-height: 120px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.calendar-day:hover {
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-.calendar-day:last-child {
-    border-right: none;
-}
-
-.calendar-day.today {
-    background-color: rgba(13, 110, 253, 0.1);
-}
-
-.calendar-day.other-month {
-    background-color: #f8f9fa;
-    color: #adb5bd;
-}
-
-.day-number {
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.day-events {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.event {
-    background-color: #e3f2fd;
-    border-left: 3px solid #2196f3;
-    padding: 4px 6px;
-    border-radius: 3px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.event:hover {
-    transform: translateX(2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.event-scheduled {
-    background-color: #fff8e1;
-    border-left-color: #ff9800;
-}
-
-.event-confirmed {
-    background-color: #e8f5e8;
-    border-left-color: #4caf50;
-}
-
-.event-completed {
-    background-color: #e1f5fe;
-    border-left-color: #03a9f4;
-}
-
-.event-cancelled {
-    background-color: #ffebee;
-    border-left-color: #f44336;
-}
-
-.event-time {
-    font-weight: 600;
-    color: #333;
-}
-
-.event-title {
-    font-weight: 500;
-    margin: 1px 0;
-}
-
-.event-job {
-    color: #666;
-    font-size: 10px;
-}
-
-/* Недельный вид */
-.week-view {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.week-header {
-    display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-    border-bottom: 2px solid #dee2e6;
-    background-color: #f8f9fa;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.week-day-header {
-    padding: 15px 10px;
-    text-align: center;
-    border-right: 1px solid #dee2e6;
-}
-
-.week-day-header.today {
-    background-color: rgba(13, 110, 253, 0.1);
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-.week-body {
-    display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-}
-
-.week-hour-row {
-    display: contents;
-}
-
-.time-column {
-    padding: 10px;
-    border-right: 2px solid #dee2e6;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    font-size: 0.85rem;
-    color: #6c757d;
-    text-align: center;
-    font-weight: 600;
-}
-
-.week-hour-cell {
-    border-right: 1px solid #dee2e6;
-    border-bottom: 1px solid #dee2e6;
-    min-height: 60px;
-    padding: 4px;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.week-hour-cell:hover {
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-/* Дневной вид */
-.day-view {
-    width: 100%;
-}
-
-.day-view-header {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    text-align: center;
-}
-
-.day-hour-row {
-    display: grid;
-    grid-template-columns: 100px 1fr;
-    min-height: 80px;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.day-time-column {
-    padding: 20px 15px;
-    border-right: 2px solid #dee2e6;
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #6c757d;
-    text-align: center;
-}
-
-.day-hour-content {
-    padding: 10px 15px;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.day-hour-content:hover {
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-.empty-hour {
-    color: #adb5bd;
-    font-style: italic;
-    padding: 20px 0;
-}
-
-/* События в разных видах */
-.event-detailed {
-    margin-bottom: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.event-detailed:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.event-detailed .event-title {
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-
-.event-detailed .event-job {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 2px;
-}
-
-.event-detailed .event-duration {
-    font-size: 0.75rem;
-    color: #888;
-}
-
-.badge-sm {
-    font-size: 0.7rem;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .calendar-body {
-        grid-auto-rows: minmax(80px, auto);
-    }
-    
-    .calendar-day {
-        min-height: 80px;
-        padding: 4px;
-    }
-    
-    .event {
-        font-size: 10px;
-        padding: 2px 4px;
-    }
-    
-    .week-header, .week-body {
-        grid-template-columns: 60px repeat(7, minmax(80px, 1fr));
-    }
-    
-    .time-column, .day-time-column {
-        font-size: 0.75rem;
-        padding: 8px 4px;
-    }
-    
-    .week-hour-cell {
-        min-height: 40px;
-        padding: 2px;
-    }
-    
-    .event-detailed {
-        font-size: 0.8rem;
-        padding: 4px 6px;
-    }
-}
-
-@media (max-width: 576px) {
-    .calendar-day {
-        min-height: 60px;
-        padding: 2px;
-    }
-    
-    .day-number {
-        font-size: 0.9rem;
-    }
-    
-    .event {
-        font-size: 9px;
-        padding: 1px 3px;
-    }
-    
-    .week-header, .week-body {
-        grid-template-columns: 50px repeat(7, minmax(60px, 1fr));
-    }
-}
-</style>
+<div class="modal fade" id="eventDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    Детали собеседования
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eventDetailContent">
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <a href="#" class="btn btn-primary" id="editEventBtn">
+                    <i class="fas fa-edit me-1"></i>
+                    Редактировать
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/ru.global.min.js'></script>
 <script>
-// Текущая дата календаря
-let currentDate = new Date();
-let currentView = 'month';
-
-// Названия месяцев и дней
-const monthNames = [
-    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-];
-
-const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const dayNamesFull = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-
-// Примерные данные событий
-const sampleEvents = [
-    {
-        id: 1,
-        title: 'Иван Петров',
-        job: 'Frontend Developer',
-        date: new Date(2024, 11, 15, 10, 0),
-        duration: 60,
-        status: 'confirmed'
-    },
-    {
-        id: 2,
-        title: 'Анна Сидорова', 
-        job: 'Backend Developer',
-        date: new Date(2024, 11, 18, 14, 30),
-        duration: 45,
-        status: 'scheduled'
-    },
-    {
-        id: 3,
-        title: 'Петр Иванов',
-        job: 'DevOps Engineer', 
-        date: new Date(2024, 11, 20, 11, 0),
-        duration: 90,
-        status: 'confirmed'
-    },
-    {
-        id: 4,
-        title: 'Мария Козлова',
-        job: 'UI/UX Designer',
-        date: new Date(2024, 11, 22, 15, 0),
-        duration: 45,
-        status: 'scheduled'
-    }
-];
-
 document.addEventListener('DOMContentLoaded', function() {
-    initCalendar();
+    var calendarEl = document.getElementById('calendar');
     
-    // Навигация
-    document.getElementById('prevMonthBtn').addEventListener('click', navigatePrevious);
-    document.getElementById('nextMonthBtn').addEventListener('click', navigateNext);
-    
-    // Переключение видов календаря
-    document.querySelectorAll('[data-view]').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('[data-view]').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ru',
+        height: 'auto',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        buttonText: {
+            today: 'Сегодня',
+            month: 'Месяц',
+            week: 'Неделя',
+            day: 'День',
+            list: 'Список'
+        },
+        events: {{ events|safe }},
+        eventClick: function(info) {
+            showEventDetails(info.event);
+        },
+        dateClick: function(info) {
+            // Открыть модальное окно создания события с предустановленной датой
+            const dateInput = document.querySelector('#scheduleForm input[name="date"]');
+            dateInput.value = info.dateStr;
             
-            currentView = this.dataset.view;
-            switchCalendarView();
-        });
+            const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            scheduleModal.show();
+        },
+        eventDidMount: function(info) {
+            // Добавление классов для стилизации событий
+            const status = info.event.extendedProps.status;
+            if (status) {
+                info.el.classList.add(`fc-event-${status}`);
+            }
+        },
+        dayMaxEvents: 3,
+        moreLinkText: 'ещё',
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
+        slotLabelFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }
     });
     
-    addTodayButton();
+    calendar.render();
+    
+    // Функция отображения деталей события
+    function showEventDetails(event) {
+        const modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+        const content = document.getElementById('eventDetailContent');
+        const editBtn = document.getElementById('editEventBtn');
+        
+        // Заполнение контента модального окна
+        content.innerHTML = `
+            <div class="mb-3">
+                <h6>Кандидат:</h6>
+                <p class="mb-1">${event.title}</p>
+            </div>
+            <div class="mb-3">
+                <h6>Вакансия:</h6>
+                <p class="mb-1">${event.extendedProps.job || 'Не указана'}</p>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <h6>Дата:</h6>
+                    <p class="mb-1">${event.start.toLocaleDateString('ru-RU')}</p>
+                </div>
+                <div class="col-6">
+                    <h6>Время:</h6>
+                    <p class="mb-1">${event.start.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <h6>Статус:</h6>
+                    <span class="badge ${getStatusBadgeClass(event.extendedProps.status)}">${getStatusText(event.extendedProps.status)}</span>
+                </div>
+                <div class="col-6">
+                    <h6>Формат:</h6>
+                    <p class="mb-1">${getFormatText(event.extendedProps.format)}</p>
+                </div>
+            </div>
+            ${event.extendedProps.location ? `
+                <div class="mb-3">
+                    <h6>Место/Ссылка:</h6>
+                    <p class="mb-1">${event.extendedProps.location}</p>
+                </div>
+            ` : ''}
+            ${event.extendedProps.notes ? `
+                <div class="mb-3">
+                    <h6>Заметки:</h6>
+                    <p class="mb-1">${event.extendedProps.notes}</p>
+                </div>
+            ` : ''}
+        `;
+        
+        // Установка ссылки на редактирование
+        if (event.url) {
+            editBtn.href = event.url;
+        }
+        
+        modal.show();
+    }
+    
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'scheduled': 'bg-warning text-dark',
+            'confirmed': 'bg-success',
+            'completed': 'bg-info',
+            'cancelled': 'bg-danger'
+        };
+        return classes[status] || 'bg-secondary';
+    }
+    
+    function getStatusText(status) {
+        const texts = {
+            'scheduled': 'Запланировано',
+            'confirmed': 'Подтверждено', 
+            'completed': 'Завершено',
+            'cancelled': 'Отменено'
+        };
+        return texts[status] || 'Неизвестно';
+    }
+    
+    function getFormatText(format) {
+        const texts = {
+            'online': '📹 Онлайн',
+            'offline': '🏢 В офисе',
+            'phone': '📞 Телефон'
+        };
+        return texts[format] || 'Не указан';
+    }
+    
+    // Обработка формы планирования
+    initScheduleForm();
 });
 
-function initCalendar() {
-    generateMonthCalendar();
-    updateTitle();
-}
-
-function navigatePrevious() {
-    switch(currentView) {
-        case 'month':
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            generateMonthCalendar();
-            break;
-        case 'week':
-            currentDate.setDate(currentDate.getDate() - 7);
-            generateWeekCalendar();
-            break;
-        case 'day':
-            currentDate.setDate(currentDate.getDate() - 1);
-            generateDayCalendar();
-            break;
-    }
-    updateTitle();
-}
-
-function navigateNext() {
-    switch(currentView) {
-        case 'month':
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            generateMonthCalendar();
-            break;
-        case 'week':
-            currentDate.setDate(currentDate.getDate() + 7);
-            generateWeekCalendar();
-            break;
-        case 'day':
-            currentDate.setDate(currentDate.getDate() + 1);
-            generateDayCalendar();
-            break;
-    }
-    updateTitle();
-}
-
-function switchCalendarView() {
-    // Скрыть все виды
-    document.querySelectorAll('.calendar-view').forEach(view => {
-        view.classList.add('d-none');
-    });
-    
-    // Показать нужный вид
-    switch(currentView) {
-        case 'month':
-            document.getElementById('monthView').classList.remove('d-none');
-            generateMonthCalendar();
-            break;
-        case 'week':
-            document.getElementById('weekView').classList.remove('d-none');
-            generateWeekCalendar();
-            break;
-        case 'day':
-            document.getElementById('dayView').classList.remove('d-none');
-            generateDayCalendar();
-            break;
-    }
-    updateTitle();
-}
-
-function updateTitle() {
-    const monthYearElement = document.getElementById('currentMonthYear');
-    
-    switch(currentView) {
-        case 'month':
-            monthYearElement.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-            break;
-        case 'week':
-            const weekStart = getWeekStart(currentDate);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            monthYearElement.textContent = `${weekStart.getDate()}-${weekEnd.getDate()} ${monthNames[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
-            break;
-        case 'day':
-            monthYearElement.textContent = `${currentDate.getDate()} ${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-            break;
-    }
-}
-
-function generateMonthCalendar() {
-    const calendarBody = document.getElementById('monthCalendarBody');
-    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-    const startDate = getWeekStart(firstDay);
-    
-    const eventsForMonth = getEventsForPeriod(firstDay, lastDay);
-    
-    let html = '';
-    const currentDateObj = new Date(startDate);
-    
-    for (let week = 0; week < 6; week++) {
-        for (let day = 0; day < 7; day++) {
-            const isCurrentMonth = currentDateObj.getMonth() === currentDate.getMonth();
-            const isToday = isDateToday(currentDateObj);
-            const dayEvents = eventsForMonth.filter(event => isSameDay(event.date, currentDateObj));
-            
-            html += `
-                <div class="calendar-day ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}" 
-                     data-date="${currentDateObj.toISOString().split('T')[0]}">
-                    <div class="day-number">${currentDateObj.getDate()}</div>
-                    <div class="day-events">
-                        ${dayEvents.map(event => generateEventHtml(event, 'month')).join('')}
-                    </div>
-                </div>
-            `;
-            
-            currentDateObj.setDate(currentDateObj.getDate() + 1);
-        }
-        
-        if (currentDateObj.getMonth() !== currentDate.getMonth() && 
-            currentDateObj.getMonth() !== (currentDate.getMonth() + 1) % 12) {
-            break;
-        }
-    }
-    
-    calendarBody.innerHTML = html;
-}
-
-function generateWeekCalendar() {
-    const weekStart = getWeekStart(currentDate);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const eventsForWeek = getEventsForPeriod(weekStart, weekEnd);
-    
-    // Заголовок недели
-    const weekHeader = document.getElementById('weekHeader');
-    let headerHtml = '<div class="time-column"></div>';
-    
-    for (let i = 0; i < 7; i++) {
-        const day = new Date(weekStart);
-        day.setDate(day.getDate() + i);
-        const isToday = isDateToday(day);
-        
-        headerHtml += `
-            <div class="week-day-header ${isToday ? 'today' : ''}">
-                <div class="day-name">${dayNames[i]}</div>
-                <div class="day-number">${day.getDate()}</div>
-            </div>
-        `;
-    }
-    weekHeader.innerHTML = headerHtml;
-    
-    // Тело недели
-    const weekBody = document.getElementById('weekBody');
-    let bodyHtml = '';
-    
-    for (let hour = 8; hour <= 18; hour++) {
-        bodyHtml += `
-            <div class="week-hour-row">
-                <div class="time-column">${hour.toString().padStart(2, '0')}:00</div>
-        `;
-        
-        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-            const day = new Date(weekStart);
-            day.setDate(day.getDate() + dayIndex);
-            day.setHours(hour, 0, 0, 0);
-            
-            const hourEvents = eventsForWeek.filter(event => 
-                isSameDay(event.date, day) && event.date.getHours() === hour
-            );
-            
-            bodyHtml += `
-                <div class="week-hour-cell" data-datetime="${day.toISOString()}">
-                    ${hourEvents.map(event => generateEventHtml(event, 'week')).join('')}
-                </div>
-            `;
-        }
-        
-        bodyHtml += '</div>';
-    }
-    
-    weekBody.innerHTML = bodyHtml;
-}
-
-function generateDayCalendar() {
-    const dayStart = new Date(currentDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(currentDate);
-    dayEnd.setHours(23, 59, 59, 999);
-    const eventsForDay = getEventsForPeriod(dayStart, dayEnd);
-    
-    // Заголовок дня
-    const dayHeader = document.getElementById('dayHeader');
-    const dayName = dayNamesFull[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1];
-    dayHeader.innerHTML = `<h5>${dayName}, ${currentDate.getDate()} ${monthNames[currentDate.getMonth()]}</h5>`;
-    
-    // Тело дня
-    const dayBody = document.getElementById('dayBody');
-    let bodyHtml = '';
-    
-    for (let hour = 8; hour <= 18; hour++) {
-        const hourEvents = eventsForDay.filter(event => event.date.getHours() === hour);
-        
-        bodyHtml += `
-            <div class="day-hour-row">
-                <div class="day-time-column">${hour.toString().padStart(2, '0')}:00</div>
-                <div class="day-hour-content">
-                    ${hourEvents.map(event => generateEventHtml(event, 'day')).join('')}
-                    ${hourEvents.length === 0 ? '<div class="empty-hour">Свободно</div>' : ''}
-                </div>
-            </div>
-        `;
-    }
-    
-    dayBody.innerHTML = bodyHtml;
-}
-
-function generateEventHtml(event, viewType) {
-    const statusClasses = {
-        'scheduled': 'event-scheduled',
-        'confirmed': 'event-confirmed',
-        'completed': 'event-completed',
-        'cancelled': 'event-cancelled'
-    };
-    
-    const timeStr = event.date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
-    
-    switch(viewType) {
-        case 'month':
-            return `
-                <div class="event ${statusClasses[event.status]}" data-event-id="${event.id}">
-                    <div class="event-time">${timeStr}</div>
-                    <div class="event-title">${event.title}</div>
-                </div>
-            `;
-        case 'week':
-        case 'day':
-            return `
-                <div class="event ${statusClasses[event.status]} event-detailed" data-event-id="${event.id}">
-                    <div class="event-time">${timeStr}</div>
-                    <div class="event-title">${event.title}</div>
-                    <div class="event-job">${event.job}</div>
-                    <div class="event-duration">${event.duration} мин</div>
-                </div>
-            `;
-        default:
-            return '';
-    }
-}
-
-// Вспомогательные функции
-function getWeekStart(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-}
-
-function isDateToday(date) {
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
-}
-
-function isSameDay(date1, date2) {
-    return date1.getDate() === date2.getDate() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getFullYear() === date2.getFullYear();
-}
-
-function getEventsForPeriod(startDate, endDate) {
-    return sampleEvents.filter(event => 
-        event.date >= startDate && event.date <= endDate
-    );
-}
-
-function goToToday() {
-    currentDate = new Date();
-    switchCalendarView();
-}
-
-function addTodayButton() {
-    const navContainer = document.querySelector('.row.align-items-center .col-auto:last-child');
-    if (navContainer) {
-        const todayBtn = document.createElement('button');
-        todayBtn.className = 'btn btn-outline-info btn-sm ms-2';
-        todayBtn.innerHTML = '<i class="fas fa-calendar-day me-1"></i>Сегодня';
-        todayBtn.onclick = goToToday;
-        navContainer.appendChild(todayBtn);
-    }
-}
-
-// Работа с модальным окном планирования
-document.addEventListener('DOMContentLoaded', function() {
+function initScheduleForm() {
     const scheduleForm = document.getElementById('scheduleForm');
     const submitBtn = document.getElementById('scheduleSubmitBtn');
     const previewDiv = document.getElementById('interviewPreview');
@@ -1040,17 +604,39 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
             
-            // Здесь должна быть отправка AJAX запроса
-            // Пока просто показываем сообщение
-            setTimeout(() => {
-                alert('Собеседование запланировано! (Функция в разработке)');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-                modal.hide();
-                scheduleForm.reset();
-                previewDiv.classList.add('d-none');
+            // Отправка формы
+            const formData = new FormData(scheduleForm);
+            
+            fetch('{% url "calendar_app:schedule_interview" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                    modal.hide();
+                    
+                    // Показать уведомление об успехе
+                    showNotification('Собеседование успешно запланировано!', 'success');
+                    
+                    // Обновить календарь
+                    location.reload();
+                } else {
+                    showNotification(data.message || 'Произошла ошибка при планировании собеседования', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Произошла ошибка при отправке запроса', 'error');
+            })
+            .finally(() => {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать собеседование';
-            }, 1000);
+            });
         } else {
             scheduleForm.reportValidity();
         }
@@ -1063,14 +649,28 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать собеседование';
     });
-});
+}
 
-function showEventDetails(eventId) {
-    const event = sampleEvents.find(e => e.id == eventId);
-    if (event) {
-        alert(`Событие: ${event.title}\nВакансия: ${event.job}\nВремя: ${event.date.toLocaleString('ru-RU')}\nДлительность: ${event.duration} мин`);
-        // В реальном приложении здесь должно открыться модальное окно или переход на страницу деталей
-    }
+function showNotification(message, type) {
+    // Простое уведомление (можно заменить на более красивое решение)
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Автоматическое скрытие через 5 секунд
+    setTimeout(() => {
+        const alert = document.querySelector('.alert.position-fixed');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
 }
 </script>
 {% endblock %}
