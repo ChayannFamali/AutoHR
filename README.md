@@ -7,7 +7,7 @@
 ![AI](https://img.shields.io/badge/AI-Transformers-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-![AutoHR Demo](./assets/dmain.png)
+![AutoHR Demo](./assets/main.png)
 
 ## 🌟 Ключевые возможности
 
