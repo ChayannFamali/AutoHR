@@ -14,6 +14,225 @@ from .forms import ScheduleInterviewForm
 from .models import Interview, InterviewTimeSlot, InterviewType
 
 User = get_user_model()
+import json
+from datetime import datetime, timezone
+
+from django.contrib import messages
+# calendar_app/views.py
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_http_methods
+
+from core.utils import can_manage_applications
+
+from .models import Interview
+
+
+@login_required
+def interview_list(request):
+    """Список всех собеседований"""
+    
+    # Фильтруем собеседования в зависимости от роли
+    if request.user.is_hr() or request.user.is_admin_user():
+        interviews = Interview.objects.select_related(
+            'candidate', 'interviewer', 'application__job'
+        ).order_by('scheduled_at')
+    else:
+        # Кандидаты видят только свои собеседования
+        interviews = Interview.objects.filter(
+            candidate__user=request.user
+        ).select_related('interviewer', 'application__job').order_by('scheduled_at')
+    
+    # Применяем фильтры
+    status_filter = request.GET.get('status')
+    if status_filter:
+        interviews = interviews.filter(status=status_filter)
+    
+    date_filter = request.GET.get('date')
+    if date_filter:
+        interviews = interviews.filter(scheduled_at__date=date_filter)
+    
+    context = {
+        'interviews': interviews,
+        'can_manage_interviews': can_manage_applications(request.user),
+        'is_candidate': request.user.is_candidate(),
+    }
+    
+    return render(request, 'calendar_app/interview_list.html', context)
+@login_required
+@require_http_methods(["POST"])
+def save_interview_feedback(request, interview_id):
+    try:
+        interview = get_object_or_404(Interview, id=interview_id)
+        data = json.loads(request.body)
+        
+        interview.feedback = data.get('feedback', '')
+        interview.rating = data.get('rating', None)
+        interview.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Отзыв сохранен'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
+@login_required
+@require_http_methods(["POST"])
+def update_interview_status(request, interview_id):
+    """Обновление статуса собеседования"""
+    
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для управления собеседованиями'
+        })
+    
+    try:
+        interview = get_object_or_404(Interview, id=interview_id)
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        
+        if new_status not in ['scheduled', 'confirmed', 'completed', 'cancelled', 'rescheduled']:
+            return JsonResponse({
+                'success': False,
+                'message': 'Неверный статус'
+            })
+        
+        interview.status = new_status
+        interview.save()
+        
+        # Обновляем статус заявки при необходимости
+        if new_status == 'completed':
+            interview.application.status = 'interviewed'
+            interview.application.save()
+        elif new_status == 'cancelled':
+            interview.application.status = 'pending'
+            interview.application.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Статус собеседования обновлен: {interview.get_status_display()}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
+@login_required
+@require_http_methods(["POST"])
+def reschedule_interview(request, interview_id):
+    """Перенос собеседования"""
+    
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для переноса собеседований'
+        })
+    
+    try:
+        interview = get_object_or_404(Interview, id=interview_id)
+        
+        date_str = request.POST.get('date')
+        time_str = request.POST.get('time')
+        reason = request.POST.get('reason', '')
+        
+        if not date_str or not time_str:
+            return JsonResponse({
+                'success': False,
+                'message': 'Укажите новые дату и время'
+            })
+        
+        # Парсим новую дату и время
+        try:
+            new_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            new_datetime = new_datetime.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Неверный формат даты или времени'
+            })
+        
+        # Проверяем, что дата в будущем
+        if new_datetime <= datetime.now(timezone.utc):
+            return JsonResponse({
+                'success': False,
+                'message': 'Новая дата должна быть в будущем'
+            })
+        
+        # Сохраняем старую дату для истории
+        old_datetime = interview.scheduled_at
+        
+        # Обновляем собеседование
+        interview.scheduled_at = new_datetime
+        interview.status = 'rescheduled'
+        if reason:
+            interview.notes = f"Перенесено с {old_datetime.strftime('%d.%m.%Y %H:%M')}. Причина: {reason}"
+        interview.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Собеседование перенесено на {new_datetime.strftime("%d.%m.%Y в %H:%M")}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
+@login_required
+@require_http_methods(["POST"])
+def add_interview_notes(request, interview_id):
+    """Добавление заметок к собеседованию"""
+    
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для добавления заметок'
+        })
+    
+    try:
+        interview = get_object_or_404(Interview, id=interview_id)
+        data = json.loads(request.body)
+        notes = data.get('notes', '').strip()
+        
+        if not notes:
+            return JsonResponse({
+                'success': False,
+                'message': 'Заметка не может быть пустой'
+            })
+        
+        # Добавляем заметку с временной меткой
+        timestamp = datetime.now().strftime("%d.%m.%Y %H:%M")
+        user_name = request.user.get_full_name() or request.user.username
+        new_note = f"[{timestamp}] {user_name}: {notes}"
+        
+        if interview.notes:
+            interview.notes = f"{interview.notes}\n\n{new_note}"
+        else:
+            interview.notes = new_note
+        
+        interview.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Заметка добавлена',
+            'notes': interview.notes
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
 @login_required
 def schedule_interview(request):
     if request.method == 'POST':

@@ -6,13 +6,24 @@
 {% block content %}
 <div class="container-fluid my-4">
     
+    
     <div class="row mb-4">
         <div class="col-md-8">
             <h1 class="h2">
                 <i class="fas fa-file-pdf me-2 text-primary"></i>
-                База резюме
+                {% if is_candidate %}
+                    Мои резюме
+                {% else %}
+                    База резюме
+                {% endif %}
             </h1>
-            <p class="text-muted">Управление резюме кандидатов с ИИ-анализом</p>
+            <p class="text-muted">
+                {% if is_candidate %}
+                    Управление вашими резюме
+                {% else %}
+                    Управление резюме кандидатов с ИИ-анализом
+                {% endif %}
+            </p>
         </div>
         <div class="col-md-4 text-md-end">
             <div class="btn-group" role="group">
@@ -24,6 +35,7 @@
                         title="Обновить данные" onclick="location.reload()">
                     <i class="fas fa-sync-alt"></i>
                 </button>
+                {% if can_export_data %}
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-outline-secondary dropdown-toggle" 
                             data-bs-toggle="dropdown">
@@ -48,6 +60,7 @@
                         </li>
                     </ul>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -84,6 +97,7 @@
                                 <option value="en" {% if request.GET.language == 'en' %}selected{% endif %}>English</option>
                             </select>
                         </div>
+                        {% if not is_candidate %}
                         <div class="col-md-3">
                             <label class="form-label">Кандидат</label>
                             <input type="text" name="candidate" class="form-control" 
@@ -91,6 +105,9 @@
                                    value="{{ request.GET.candidate }}">
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
+                        {% else %}
+                        <div class="col-md-6 d-flex align-items-end">
+                        {% endif %}
                             <button type="submit" class="btn btn-primary me-2">
                                 <i class="fas fa-search me-1"></i>
                                 Фильтр
@@ -112,7 +129,7 @@
                                 <i class="fas fa-file-pdf fa-2x"></i>
                             </div>
                             <div class="mt-2">
-                                <div class="fw-bold">{{ resumes|length }}</div>
+                                <div class="fw-bold">{{ total_resumes }}</div>
                                 <small class="text-muted">Всего</small>
                             </div>
                         </div>
@@ -121,7 +138,7 @@
                                 <i class="fas fa-check-circle fa-2x"></i>
                             </div>
                             <div class="mt-2">
-                                <div class="fw-bold">-</div>
+                                <div class="fw-bold">{{ processed_resumes }}</div>
                                 <small class="text-muted">Обработано</small>
                             </div>
                         </div>
@@ -130,16 +147,31 @@
                                 <i class="fas fa-cog fa-2x"></i>
                             </div>
                             <div class="mt-2">
-                                <div class="fw-bold">-</div>
+                                <div class="fw-bold">{{ processing_resumes }}</div>
                                 <small class="text-muted">В обработке</small>
                             </div>
                         </div>
                     </div>
+                    
+                    
+                    {% if can_view_sensitive_data and total_resumes > 0 %}
+                    <hr class="my-3">
+                    <div class="row text-center small">
+                        <div class="col-6">
+                            <div class="text-secondary">{{ uploaded_resumes }}</div>
+                            <small class="text-muted">Загружено</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-danger">{{ error_resumes }}</div>
+                            <small class="text-muted">Ошибки</small>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-
+    
     
     {% if resumes %}
         <div class="card">
@@ -147,7 +179,9 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            {% if not is_candidate %}
                             <th>Кандидат</th>
+                            {% endif %}
                             <th>Файл</th>
                             <th>Язык</th>
                             <th>Навыки</th>
@@ -160,6 +194,7 @@
                     <tbody>
                         {% for resume in resumes %}
                             <tr>
+                                {% if not is_candidate %}
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle bg-primary text-white me-2">
@@ -167,10 +202,15 @@
                                         </div>
                                         <div>
                                             <div class="fw-bold">{{ resume.candidate.full_name }}</div>
+                                            {% if can_view_sensitive_data %}
                                             <small class="text-muted">{{ resume.candidate.email }}</small>
+                                            {% else %}
+                                            <small class="text-muted">***@***.***</small>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </td>
+                                {% endif %}
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-file-{% if resume.is_pdf %}pdf text-danger{% else %}word text-primary{% endif %} me-2"></i>
@@ -242,21 +282,25 @@
                                            class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Просмотр">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        {% if can_view_sensitive_data or is_candidate %}
                                         <a href="{{ resume.file.url }}" target="_blank" 
                                            class="btn btn-outline-info" data-bs-toggle="tooltip" title="Скачать">
                                             <i class="fas fa-download"></i>
                                         </a>
+                                        {% endif %}
                                         {% if resume.status == 'uploaded' or resume.status == 'error' %}
                                             <button type="button" class="btn btn-outline-warning" 
                                                     data-bs-toggle="tooltip" title="Повторить анализ">
                                                 <i class="fas fa-redo"></i>
                                             </button>
                                         {% endif %}
+                                        {% if can_manage_resumes or is_candidate %}
                                         <button type="button" class="btn btn-outline-danger" 
                                                 data-bs-toggle="tooltip" title="Удалить"
                                                 data-confirm="Вы уверены, что хотите удалить это резюме?">
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -304,11 +348,27 @@
         <div class="card">
             <div class="card-body text-center py-5">
                 <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
-                <h4>Резюме пока не загружены</h4>
-                <p class="text-muted">Загруженные резюме будут отображаться здесь</p>
+                <h4>
+                    {% if is_candidate %}
+                        У вас пока нет резюме
+                    {% else %}
+                        Резюме пока не загружены
+                    {% endif %}
+                </h4>
+                <p class="text-muted">
+                    {% if is_candidate %}
+                        Загрузите ваше резюме для анализа
+                    {% else %}
+                        Загруженные резюме будут отображаться здесь
+                    {% endif %}
+                </p>
                 <a href="{% url 'resume:upload_resume' %}" class="btn btn-primary">
                     <i class="fas fa-plus me-1"></i>
-                    Загрузить первое резюме
+                    {% if is_candidate %}
+                        Загрузить резюме
+                    {% else %}
+                        Загрузить первое резюме
+                    {% endif %}
                 </a>
             </div>
         </div>

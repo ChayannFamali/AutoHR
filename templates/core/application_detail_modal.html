@@ -1,0 +1,374 @@
+<div class="modal-header">
+    <h5 class="modal-title">
+        <i class="fas fa-file-alt me-2"></i>
+        Детали заявки #{{ application.id }}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+                <i class="fas fa-user me-2"></i>
+                Информация о кандидате
+            </h6>
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-circle bg-primary text-white me-3" style="width: 60px; height: 60px; font-size: 20px;">
+                        {{ application.candidate.first_name.0 }}{{ application.candidate.last_name.0 }}
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-5">{{ application.candidate.get_full_name }}</div>
+                        <div class="text-muted">
+                            <i class="fas fa-envelope me-1"></i>
+                            {% if can_view_sensitive_data %}
+                                {{ application.candidate.email }}
+                            {% else %}
+                                ***@***.***
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if application.candidate.phone and can_view_sensitive_data %}
+            <div class="mb-2">
+                <i class="fas fa-phone text-muted me-2" style="width: 16px;"></i>
+                <span>{{ application.candidate.phone }}</span>
+            </div>
+            {% endif %}
+            
+            {% if application.candidate.profile.location %}
+            <div class="mb-2">
+                <i class="fas fa-map-marker-alt text-muted me-2" style="width: 16px;"></i>
+                <span>{{ application.candidate.profile.location }}</span>
+            </div>
+            {% endif %}
+            
+            {% if application.candidate.profile.experience_years %}
+            <div class="mb-2">
+                <i class="fas fa-briefcase text-muted me-2" style="width: 16px;"></i>
+                <span>Опыт: {{ application.candidate.profile.experience_years }} лет</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+                <i class="fas fa-briefcase me-2"></i>
+                Информация о вакансии
+            </h6>
+            <div class="mb-2">
+                <strong>Должность:</strong> 
+                <a href="{% url 'core:job_detail' application.job.pk %}" target="_blank" class="text-decoration-none">
+                    {{ application.job.title }}
+                    <i class="fas fa-external-link-alt ms-1 small"></i>
+                </a>
+            </div>
+            <div class="mb-2">
+                <strong>Компания:</strong> {{ application.job.company.name }}
+            </div>
+            {% if can_view_sensitive_data %}
+            <div class="mb-2">
+                <strong>Зарплата:</strong> 
+                {% if application.job.salary_from %}
+                    {{ application.job.salary_from|floatformat:0 }}
+                    {% if application.job.salary_to %} - {{ application.job.salary_to|floatformat:0 }}{% endif %}
+                    {{ application.job.currency|default:"₽" }}
+                {% else %}
+                    По договоренности
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <hr>
+    
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Статус заявки
+            </h6>
+            <div class="mb-3">
+                <span class="badge badge-status status-{{ application.status }} fs-6 px-3 py-2">
+                    {% if application.status == 'pending' %}
+                        <i class="fas fa-clock me-2"></i>
+                    {% elif application.status == 'processing' %}
+                        <i class="fas fa-cog fa-spin me-2"></i>
+                    {% elif application.status == 'approved' %}
+                        <i class="fas fa-check me-2"></i>
+                    {% elif application.status == 'rejected' %}
+                        <i class="fas fa-times me-2"></i>
+                    {% endif %}
+                    {{ application.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="text-muted small">
+                <div><strong>Подана:</strong> {{ application.applied_at|date:"d.m.Y в H:i" }}</div>
+                {% if application.updated_at != application.applied_at %}
+                <div><strong>Обновлена:</strong> {{ application.updated_at|date:"d.m.Y в H:i" }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if can_view_sensitive_data %}
+        <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+                <i class="fas fa-robot me-2"></i>
+                AI Анализ
+            </h6>
+            {% if application.ai_score %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="me-3">
+                        <div class="fw-bold text-primary fs-3">{{ application.ai_score|floatformat:1 }}%</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="progress mb-1" style="height: 12px;">
+                            {% if application.ai_score >= 80 %}
+                                <div class="progress-bar bg-success" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
+                            {% elif application.ai_score >= 60 %}
+                                <div class="progress-bar bg-warning" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
+                            {% else %}
+                                <div class="progress-bar bg-danger" style="width: {{ application.ai_score|floatformat:0 }}%"></div>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">Соответствие требованиям</small>
+                    </div>
+                </div>
+                
+                {% if application.ai_feedback %}
+                <div class="bg-light p-3 rounded">
+                    <small class="text-muted d-block mb-1">
+                        <i class="fas fa-comment-alt me-1"></i>
+                        Комментарий AI:
+                    </small>
+                    <div class="small">{{ application.ai_feedback|linebreaks }}</div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <div class="text-muted small">Анализ в процессе...</div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    
+    {% if application.cover_letter %}
+    <hr>
+    <div class="mb-4">
+        <h6 class="text-muted mb-3">
+            <i class="fas fa-envelope-open-text me-2"></i>
+            Сопроводительное письмо
+        </h6>
+        <div class="bg-light p-3 rounded border-start border-primary border-4">
+            <div style="max-height: 200px; overflow-y: auto;">
+                {{ application.cover_letter|linebreaks }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    
+    <hr>
+    <div class="mb-3">
+        <h6 class="text-muted mb-3">
+            <i class="fas fa-paperclip me-2"></i>
+            Документы
+        </h6>
+        <div class="row">
+            {% if application.resume %}
+            <div class="col-md-6 mb-2">
+                <div class="border rounded p-3 h-100">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file-pdf fa-2x text-danger me-3"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">Резюме</div>
+                            <small class="text-muted">{{ application.resume.name|default:"resume.pdf" }}</small>
+                        </div>
+                        {% if can_view_sensitive_data %}
+                        <a href="{{ application.resume.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        {% else %}
+                        <span class="text-muted small">Доступно для HR</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if not application.resume %}
+        <div class="text-center text-muted py-3">
+            <i class="fas fa-inbox fa-2x mb-2"></i>
+            <div>Документы не прикреплены</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    
+    {% if can_view_sensitive_data %}
+    {% if application.notes %}
+    <div class="notes-section">
+        <hr>
+        <div class="mb-3">
+            <h6 class="text-muted mb-3">
+                <i class="fas fa-sticky-note me-2"></i>
+                Заметки HR
+            </h6>
+            <div class="bg-warning bg-opacity-10 p-3 rounded border-start border-warning border-4">
+                {{ application.notes|linebreaks }}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="notes-section">
+        
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+
+<div class="modal-footer bg-light">
+    <div class="d-flex justify-content-between w-100">
+        <div>
+            {% if can_manage_applications %}
+                {% if application.status == 'pending' %}
+                    <button type="button" class="btn btn-success me-2" 
+                            onclick="updateApplicationStatusFromModal({{ application.id }}, 'approved')">
+                        <i class="fas fa-check me-1"></i>
+                        Одобрить
+                    </button>
+                    <button type="button" class="btn btn-danger me-2" 
+                            onclick="updateApplicationStatusFromModal({{ application.id }}, 'rejected')">
+                        <i class="fas fa-times me-1"></i>
+                        Отклонить
+                    </button>
+                {% endif %}
+                
+                {% if application.status in 'pending,approved' %}
+                    <button type="button" class="btn btn-info me-2" 
+                            onclick="scheduleFromModal({{ application.id }})">
+                        <i class="fas fa-calendar-plus me-1"></i>
+                        Собеседование
+                    </button>
+                {% endif %}
+                
+                <button type="button" class="btn btn-outline-secondary me-2" 
+                        onclick="addNoteToApplication({{ application.id }})">
+                    <i class="fas fa-sticky-note me-1"></i>
+                    Добавить заметку
+                </button>
+            {% endif %}
+        </div>
+        
+        <div>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times me-1"></i>
+                Закрыть
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>
+                    Быстрое планирование собеседования
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickScheduleForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата <span class="text-danger">*</span></label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Время <span class="text-danger">*</span></label>
+                            <input type="time" name="time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Формат <span class="text-danger">*</span></label>
+                        <select name="format" class="form-select" required>
+                            <option value="">Выберите формат</option>
+                            <option value="online">Онлайн</option>
+                            <option value="offline">В офисе</option>
+                            <option value="phone">Телефон</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Место/Ссылка</label>
+                        <input type="text" name="location" class="form-control" 
+                               placeholder="Адрес офиса или ссылка на видеоконференцию">
+                        <div class="form-text">
+                            Для онлайн собеседований укажите ссылку на Zoom, Teams и т.д.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickSchedule()">
+                    <i class="fas fa-save me-1"></i>
+                    Запланировать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+.badge-status {
+    font-size: 0.875em;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-processing {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.status-approved {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.status-rejected {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.border-4 {
+    border-width: 4px !important;
+}
+</style>

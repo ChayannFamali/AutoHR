@@ -3,6 +3,45 @@
 
 {% block title %}Собеседования - AutoHR{% endblock %}
 
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.interview-card {
+    transition: box-shadow 0.2s ease;
+}
+
+.interview-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.interview-card.scheduled {
+    border-left: 4px solid #ffc107;
+}
+
+.interview-card.confirmed {
+    border-left: 4px solid #198754;
+}
+
+.interview-card.completed {
+    border-left: 4px solid #0dcaf0;
+}
+
+.interview-card.cancelled {
+    border-left: 4px solid #dc3545;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid my-4">
     
@@ -56,7 +95,11 @@
                             <label class="form-label">Интервьюер</label>
                             <select name="interviewer" class="form-select">
                                 <option value="">Все интервьюеры</option>
-                                
+                                {% for interviewer in interviewers %}
+                                    <option value="{{ interviewer.id }}" {% if request.GET.interviewer == interviewer.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ interviewer.get_full_name|default:interviewer.username }}
+                                    </option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -94,7 +137,7 @@
                                 <i class="fas fa-clock fa-2x"></i>
                             </div>
                             <div class="mt-2">
-                                <div class="fw-bold">-</div>
+                                <div class="fw-bold">{{ today_interviews_count|default:0 }}</div>
                                 <small class="text-muted">Сегодня</small>
                             </div>
                         </div>
@@ -103,7 +146,7 @@
                                 <i class="fas fa-check-circle fa-2x"></i>
                             </div>
                             <div class="mt-2">
-                                <div class="fw-bold">-</div>
+                                <div class="fw-bold">{{ completed_interviews_count|default:0 }}</div>
                                 <small class="text-muted">Завершено</small>
                             </div>
                         </div>
@@ -118,7 +161,7 @@
         <div class="row">
             {% for interview in interviews %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card interview-card {{ interview.status }}">
+                    <div class="card interview-card {{ interview.status }}" data-interview-id="{{ interview.id }}">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <div class="interview-time">
                                 <i class="fas fa-clock me-1"></i>
@@ -205,14 +248,17 @@
                                 </a>
                                 {% if interview.status == 'scheduled' %}
                                     <button type="button" class="btn btn-outline-success btn-sm" 
+                                            onclick="updateInterviewStatus({{ interview.id }}, 'confirmed')"
                                             data-bs-toggle="tooltip" title="Подтвердить">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     <button type="button" class="btn btn-outline-warning btn-sm" 
+                                            onclick="openRescheduleModal({{ interview.id }})"
                                             data-bs-toggle="tooltip" title="Перенести">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button type="button" class="btn btn-outline-danger btn-sm" 
+                                            onclick="updateInterviewStatus({{ interview.id }}, 'cancelled')"
                                             data-bs-toggle="tooltip" title="Отменить">
                                         <i class="fas fa-times"></i>
                                     </button>
@@ -272,7 +318,6 @@
         </div>
     {% endif %}
 </div>
-
 
 
 <div class="modal fade" id="scheduleModal" tabindex="-1">
@@ -381,16 +426,163 @@
         </div>
     </div>
 </div>
+
+
+<div class="modal fade" id="rescheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Перенос собеседования</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rescheduleForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Новая дата</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Новое время</label>
+                            <input type="time" name="time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Причина переноса</label>
+                        <textarea name="reason" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-warning" onclick="submitReschedule()">Перенести</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
-// Работа с модальным окном планирования
+let currentInterviewId = null;
+
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Функция для показа уведомлений
+function showNotification(message, type) {
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-child');
+        if (alert) alert.remove();
+    }, 3000);
+}
+
+// Функция для обновления статуса собеседования
+function updateInterviewStatus(interviewId, status) {
+    const statusNames = {
+        'confirmed': 'подтвердить',
+        'completed': 'завершить', 
+        'cancelled': 'отменить'
+    };
+    
+    if (confirm(`Вы уверены, что хотите ${statusNames[status]} это собеседование?`)) {
+        fetch(`/calendar/interviews/${interviewId}/update-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ 'status': status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка', 'error');
+        });
+    }
+}
+
+// Функция для открытия модального окна переноса
+function openRescheduleModal(interviewId) {
+    currentInterviewId = interviewId;
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.querySelector('#rescheduleModal input[name="date"]').min = tomorrow.toISOString().split('T')[0];
+    
+    document.getElementById('rescheduleForm').reset();
+    
+    const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+    modal.show();
+}
+
+// Функция для отправки формы переноса
+function submitReschedule() {
+    const form = document.getElementById('rescheduleForm');
+    const formData = new FormData(form);
+    
+    fetch(`/calendar/interviews/${currentInterviewId}/reschedule/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка', 'error');
+    });
+}
+
+// Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
+    // Работа с формой планирования
     const scheduleForm = document.getElementById('scheduleForm');
     const submitBtn = document.getElementById('scheduleSubmitBtn');
     const previewDiv = document.getElementById('interviewPreview');
     const previewContent = document.getElementById('previewContent');
     
-    // Автозаполнение длительности при выборе типа собеседования
+    // Автозаполнение длительности
     const interviewTypeSelect = scheduleForm.querySelector('[name="interview_type"]');
     const durationInput = scheduleForm.querySelector('[name="duration"]');
     
@@ -402,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePreview();
     });
     
-    // Обновление предварительного просмотра
+    // Функция обновления предпросмотра
     function updatePreview() {
         const formData = new FormData(scheduleForm);
         const application = scheduleForm.querySelector('[name="application"]');
@@ -442,74 +634,51 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleForm.addEventListener('change', updatePreview);
     scheduleForm.addEventListener('input', updatePreview);
     
-// Отправка формы
-submitBtn.addEventListener('click', function() {
-    if (scheduleForm.checkValidity()) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
-        
-        // AJAX отправка формы
-        const formData = new FormData(scheduleForm);
-        
-        fetch(scheduleForm.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-                modal.hide();
-                scheduleForm.reset();
-                previewDiv.classList.add('d-none');
-                
-                // Показываем уведомление
-                showNotification(data.message, 'success');
-                
-                // Перезагружаем страницу через 1 секунду
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Произошла ошибка при отправке формы', 'error');
-        })
-        .finally(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
-        });
-    } else {
-        scheduleForm.reportValidity();
-    }
-});
-
-function showNotification(message, type) {
-    // Простое уведомление
-    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
-             style="top: 20px; right: 20px; z-index: 9999;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', alertHtml);
-    
-    // Автоудаление через 5 секунд
-    setTimeout(() => {
-        const alert = document.querySelector('.alert:last-child');
-        if (alert) alert.remove();
-    }, 5000);
-}
-
+    // Отправка формы планирования
+    submitBtn.addEventListener('click', function() {
+        if (scheduleForm.checkValidity()) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
+            
+            const formData = new FormData(scheduleForm);
+            
+            fetch(scheduleForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                    modal.hide();
+                    scheduleForm.reset();
+                    previewDiv.classList.add('d-none');
+                    
+                    showNotification(data.message, 'success');
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Произошла ошибка при отправке формы', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
+            });
+        } else {
+            scheduleForm.reportValidity();
+        }
+    });
     
     // Сброс формы при закрытии модального окна
     document.getElementById('scheduleModal').addEventListener('hidden.bs.modal', function() {
@@ -519,26 +688,16 @@ function showNotification(message, type) {
         submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
     });
     
-    // Установка минимальной даты на сегодня
+    // Установка минимальной даты
     const dateInput = scheduleForm.querySelector('[name="date"]');
     const today = new Date().toISOString().split('T')[0];
     dateInput.setAttribute('min', today);
+    
+    // Инициализация тултипов
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 });
 </script>
-{% endblock %}
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-}
-</style>
 {% endblock %}

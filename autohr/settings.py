@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "notifications",
     "core",
     "resume",
+    "analytics",
 ]
 
 MIDDLEWARE = [

@@ -55,7 +55,19 @@ class Job(models.Model):
     def __str__(self):
         return f"{self.title} - {self.company.name}"
 
+# core/models.py
+from django.conf import settings
+from django.db import models
+
+
 class Candidate(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        verbose_name="Пользователь"
+    )
     first_name = models.CharField(max_length=100, verbose_name="Имя")
     last_name = models.CharField(max_length=100, verbose_name="Фамилия")
     email = models.EmailField(unique=True, verbose_name="Email")
@@ -77,6 +89,8 @@ class Candidate(models.Model):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+
+
 class Application(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Ожидает обработки'),
@@ -90,6 +104,7 @@ class Application(models.Model):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name="Вакансия")
     cover_letter = models.TextField(blank=True, verbose_name="Сопроводительное письмо")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
+    notes = models.TextField(blank=True, null=True, verbose_name="Заметки HR")
     ai_score = models.FloatField(
         null=True, 
         blank=True, 
@@ -97,7 +112,6 @@ class Application(models.Model):
         verbose_name="AI оценка"
     )
     ai_feedback = models.TextField(blank=True, verbose_name="AI отзыв")
-    hr_notes = models.TextField(blank=True, verbose_name="Заметки HR")
     applied_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     

@@ -24,23 +24,53 @@ from .models import Resume
 
 logger = logging.getLogger(__name__)
 
+from django.contrib import messages
+# resume/views.py
+# resume/views.py
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+
+from core.models import Application, Candidate
+
+from .forms import ResumeUploadForm
+from .models import Resume
+
+
+@login_required
 def upload_resume(request, application_id=None):
     application = None
+    candidate = None
+    
+    # Если указан application_id, получаем заявку
     if application_id:
         application = get_object_or_404(Application, id=application_id)
+        candidate = application.candidate
+    else:
+        # Если пользователь - кандидат, получаем его профиль кандидата
+        if request.user.is_candidate():
+            try:
+                candidate = Candidate.objects.get(user=request.user)
+            except Candidate.DoesNotExist:
+                # Создаем профиль кандидата если его нет
+                candidate = Candidate.objects.create(
+                    user=request.user,
+                    first_name=request.user.first_name or 'Не указано',
+                    last_name=request.user.last_name or 'Не указано',
+                    email=request.user.email
+                )
+        else:
+            messages.error(request, 'Только кандидаты могут загружать резюме.')
+            return redirect('core:job_list')
     
     if request.method == 'POST':
         form = ResumeUploadForm(request.POST, request.FILES)
         if form.is_valid():
             try:
                 resume = form.save(commit=False)
+                resume.candidate = candidate
                 
                 if application:
-                    resume.candidate = application.candidate
                     resume.application = application
-                else:
-                    messages.error(request, 'Необходимо сначала подать заявку на вакансию.')
-                    return redirect('core:job_list')
                 
                 resume.save()
                 
@@ -97,9 +127,9 @@ def upload_resume(request, application_id=None):
     
     return render(request, 'resume/upload_resume.html', {
         'form': form,
-        'application': application
+        'application': application,
+        'candidate': candidate,
     })
-
 
 def reprocess_resume(request, resume_id):
     """Повторная обработка резюме"""
@@ -440,9 +470,72 @@ def translate_status(status):
     return status_dict.get(status, status)
 
 
+# resume/views.py (или где у вас находится функция resume_list)
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
+from django.shortcuts import render
+
+from core.utils import (can_export_data, can_manage_applications,
+                        can_view_sensitive_data)
+
+from .models import Candidate, Resume
+
+
+@login_required
 def resume_list(request):
-    resumes = Resume.objects.select_related('candidate').order_by('-uploaded_at')
-    return render(request, 'resume/resume_list.html', {'resumes': resumes})
+    # Базовый queryset
+    queryset = Resume.objects.select_related('candidate').order_by('-uploaded_at')
+    
+    # Если пользователь - кандидат, показываем только его резюме
+    if request.user.is_candidate():
+        try:
+            candidate = Candidate.objects.get(user=request.user)
+            queryset = queryset.filter(candidate=candidate)
+        except Candidate.DoesNotExist:
+            queryset = Resume.objects.none()
+    
+    # Применяем фильтры из GET параметров
+    status_filter = request.GET.get('status')
+    if status_filter:
+        queryset = queryset.filter(status=status_filter)
+    
+    language_filter = request.GET.get('language')
+    if language_filter:
+        queryset = queryset.filter(language=language_filter)
+    
+    candidate_filter = request.GET.get('candidate')
+    if candidate_filter:
+        queryset = queryset.filter(
+            Q(candidate__first_name__icontains=candidate_filter) |
+            Q(candidate__last_name__icontains=candidate_filter) |
+            Q(candidate__email__icontains=candidate_filter)
+        )
+    
+    resumes = queryset
+    
+    # Подсчитываем статистику
+    stats = queryset.aggregate(
+        total=Count('id'),
+        uploaded=Count('id', filter=Q(status='uploaded')),
+        processing=Count('id', filter=Q(status='processing')),
+        processed=Count('id', filter=Q(status='processed')),
+        error=Count('id', filter=Q(status='error')),
+    )
+    
+    context = {
+        'resumes': resumes,
+        'total_resumes': stats['total'],
+        'uploaded_resumes': stats['uploaded'],
+        'processing_resumes': stats['processing'],
+        'processed_resumes': stats['processed'],
+        'error_resumes': stats['error'],
+        'can_view_sensitive_data': can_view_sensitive_data(request.user),
+        'can_manage_resumes': can_manage_applications(request.user),
+        'can_export_data': can_export_data(request.user),
+        'is_candidate': request.user.is_candidate(),
+    }
+    
+    return render(request, 'resume/resume_list.html', context)
 
 def resume_detail(request, pk):
     resume = get_object_or_404(Resume, pk=pk)

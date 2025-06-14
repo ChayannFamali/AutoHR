@@ -3,6 +3,100 @@
 
 {% block title %}Собеседование с {{ interview.candidate.full_name }} - AutoHR{% endblock %}
 
+{% block extra_css %}
+<style>
+.avatar-circle {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.ai-score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(#28a745 0deg, #28a745 calc(var(--score) * 3.6deg), #e9ecef calc(var(--score) * 3.6deg), #e9ecef 360deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    position: relative;
+}
+
+.ai-score-circle::before {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+}
+
+.score-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #28a745;
+    z-index: 1;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    color: #ddd;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-input input:checked ~ label,
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+    color: #ffc107;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container my-4">
     
@@ -49,24 +143,24 @@
                     
                     <div class="btn-group mb-3" role="group">
                         {% if interview.status == 'scheduled' %}
-                            <button type="button" class="btn btn-success">
+                            <button type="button" class="btn btn-success" onclick="updateInterviewStatus({{ interview.id }}, 'confirmed')">
                                 <i class="fas fa-check me-1"></i>
                                 Подтвердить
                             </button>
-                            <button type="button" class="btn btn-warning">
+                            <button type="button" class="btn btn-warning" onclick="openRescheduleModal({{ interview.id }})">
                                 <i class="fas fa-edit me-1"></i>
                                 Перенести
                             </button>
-                            <button type="button" class="btn btn-danger" data-confirm="Вы уверены, что хотите отменить собеседование?">
+                            <button type="button" class="btn btn-danger" onclick="updateInterviewStatus({{ interview.id }}, 'cancelled')">
                                 <i class="fas fa-times me-1"></i>
                                 Отменить
                             </button>
                         {% elif interview.status == 'confirmed' %}
-                            <button type="button" class="btn btn-primary">
+                            <button type="button" class="btn btn-primary" onclick="startInterview({{ interview.id }})">
                                 <i class="fas fa-play me-1"></i>
                                 Начать собеседование
                             </button>
-                            <button type="button" class="btn btn-warning">
+                            <button type="button" class="btn btn-warning" onclick="openRescheduleModal({{ interview.id }})">
                                 <i class="fas fa-edit me-1"></i>
                                 Перенести
                             </button>
@@ -76,7 +170,7 @@
                                 Редактировать отзыв
                             </button>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-secondary">
+                        <button type="button" class="btn btn-outline-secondary" onclick="sendReminder({{ interview.id }})">
                             <i class="fas fa-envelope me-1"></i>
                             Отправить напоминание
                         </button>
@@ -205,7 +299,7 @@
                         <div class="col-md-4">
                             {% if interview.application.ai_score %}
                                 <div class="text-center">
-                                    <div class="ai-score-circle" data-score="{{ interview.application.ai_score }}">
+                                    <div class="ai-score-circle" data-score="{{ interview.application.ai_score }}" style="--score: {{ interview.application.ai_score }}">
                                         <div class="score-value">{{ interview.application.ai_score|floatformat:1 }}</div>
                                         <small class="text-muted">AI Score</small>
                                     </div>
@@ -276,7 +370,7 @@
                                 Позвонить
                             </a>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-info btn-sm">
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="addToCalendar()">
                             <i class="fas fa-calendar-plus me-1"></i>
                             Добавить в календарь
                         </button>
@@ -344,29 +438,29 @@
                         <label class="form-label">Оценка кандидата</label>
                         <div class="rating-input">
                             {% for i in "12345" %}
-                                <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}">
+                                <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}" {% if interview.rating == forloop.counter %}checked{% endif %}>
                                 <label for="star{{ forloop.counter }}" class="fas fa-star"></label>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Обратная связь</label>
-                        <textarea class="form-control" rows="5" placeholder="Детальная обратная связь по результатам собеседования">{{ interview.feedback }}</textarea>
+                        <textarea id="feedback" class="form-control" rows="5" placeholder="Детальная обратная связь по результатам собеседования">{{ interview.feedback }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Рекомендация</label>
-                        <select class="form-select">
+                        <select id="recommendation" class="form-select">
                             <option value="">Выберите рекомендацию</option>
-                            <option value="hire">Рекомендую к найму</option>
-                            <option value="consider">Рассмотреть</option>
-                            <option value="reject">Не рекомендую</option>
+                            <option value="hire" {% if interview.recommendation == 'hire' %}selected{% endif %}>Рекомендую к найму</option>
+                            <option value="consider" {% if interview.recommendation == 'consider' %}selected{% endif %}>Рассмотреть</option>
+                            <option value="reject" {% if interview.recommendation == 'reject' %}selected{% endif %}>Не рекомендую</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="saveFeedback({{ interview.id }})">
                     <i class="fas fa-save me-1"></i>
                     Сохранить отзыв
                 </button>
@@ -374,111 +468,228 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_css %}
-<style>
-.avatar-circle {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
 
-.ai-score-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: conic-gradient(#28a745 0deg, #28a745 calc(var(--score) * 3.6deg), #e9ecef calc(var(--score) * 3.6deg), #e9ecef 360deg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    position: relative;
-}
-
-.ai-score-circle::before {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: white;
-    border-radius: 50%;
-}
-
-.score-value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #28a745;
-    z-index: 1;
-}
-
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -25px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid white;
-}
-
-.rating-input {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-}
-
-.rating-input input {
-    display: none;
-}
-
-.rating-input label {
-    color: #ddd;
-    font-size: 24px;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.rating-input input:checked ~ label,
-.rating-input label:hover,
-.rating-input label:hover ~ label {
-    color: #ffc107;
-}
-</style>
+<div class="modal fade" id="rescheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Перенос собеседования</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rescheduleForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Новая дата</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Новое время</label>
+                            <input type="time" name="time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Причина переноса</label>
+                        <textarea name="reason" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-warning" onclick="submitReschedule()">Перенести</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Установка значения AI Score для анимации
-    const scoreCircle = document.querySelector('.ai-score-circle');
-    if (scoreCircle) {
-        const score = scoreCircle.dataset.score * 100;
-        scoreCircle.style.setProperty('--score', score);
+// Глобальная переменная для ID собеседования
+const interviewId = {{ interview.id }};
+
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
     }
-});
+    return cookieValue;
+}
+
+// Функция показа уведомлений
+function showNotification(message, type = 'info') {
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-child');
+        if (alert) alert.remove();
+    }, 3000);
+}
+
+// Обновление статуса собеседования
+function updateInterviewStatus(interviewId, status) {
+    const statusNames = {
+        'confirmed': 'подтвердить',
+        'cancelled': 'отменить',
+        'completed': 'завершить'
+    };
+    
+    if (confirm(`Вы уверены, что хотите ${statusNames[status]} это собеседование?`)) {
+        fetch(`/calendar/interviews/${interviewId}/update-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ 'status': status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при обновлении статуса', 'error');
+        });
+    }
+}
+
+// Начать собеседование
+function startInterview(interviewId) {
+    if (confirm('Начать собеседование? Статус изменится на "Завершено" после окончания.')) {
+        updateInterviewStatus(interviewId, 'completed');
+    }
+}
+
+// Открыть модальное окно переноса
+function openRescheduleModal(interviewId) {
+    // Устанавливаем минимальную дату (завтра)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.querySelector('#rescheduleModal input[name="date"]').min = tomorrow.toISOString().split('T')[0];
+    
+    const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+    modal.show();
+}
+
+// Отправить форму переноса
+function submitReschedule() {
+    const form = document.getElementById('rescheduleForm');
+    const formData = new FormData(form);
+    
+    fetch(`/calendar/interviews/${interviewId}/reschedule/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка', 'error');
+    });
+}
+
+// Сохранить обратную связь
+function saveFeedback(interviewId) {
+    const feedback = document.querySelector('#feedback').value;
+    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+    const recommendation = document.querySelector('#recommendation').value;
+    
+    fetch(`/calendar/interviews/${interviewId}/feedback/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'feedback': feedback,
+            'rating': rating,
+            'recommendation': recommendation
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при сохранении отзыва', 'error');
+    });
+}
+
+// Отправить напоминание
+function sendReminder(interviewId) {
+    if (confirm('Отправить напоминание кандидату?')) {
+        fetch(`/calendar/interviews/${interviewId}/send-reminder/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message, data.success ? 'success' : 'error');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при отправке напоминания', 'error');
+        });
+    }
+}
+
+// Добавить в календарь
+function addToCalendar() {
+    const startDate = new Date('{{ interview.scheduled_at|date:"c" }}');
+    const endDate = new Date(startDate.getTime() + {{ interview.duration_minutes }} * 60000);
+    
+    const event = {
+        title: 'Собеседование с {{ interview.candidate.full_name|escapejs }}',
+        start: startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
+        end: endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
+        description: 'Собеседование на позицию {{ interview.application.job.title|escapejs }}'
+    };
+    
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${event.start}/${event.end}&details=${encodeURIComponent(event.description)}`;
+    window.open(calendarUrl, '_blank');
+}
 </script>
 {% endblock %}

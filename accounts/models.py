@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from core.models import Candidate
+
 
 class User(AbstractUser):
     USER_TYPES = [
@@ -28,6 +30,13 @@ class User(AbstractUser):
     
     def is_admin_user(self):
         return self.user_type == 'admin' or self.is_superuser
+    
+    def get_candidate(self):
+        """Получить объект Candidate для пользователя"""
+        try:
+            return self.candidate
+        except Candidate.DoesNotExist:
+            return None
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

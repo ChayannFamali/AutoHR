@@ -1,19 +1,217 @@
+import json
 from venv import logger
 
 import openpyxl
 from django.contrib import messages
-from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, Q
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import CreateView, DetailView, ListView
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from accounts.decorators import hr_required
 from notifications.services import NotificationService
 from resume.models import Resume
 
-from .forms import ApplicationForm
+from .forms import ApplicationForm, JobCreateForm
 from .models import Application, Candidate, Job
+from .utils import (can_export_data, can_manage_applications,
+                    can_view_sensitive_data)
+
+
+@login_required
+@require_http_methods(["POST"])
+def add_note_to_application(request, application_id):
+    try:
+        application = get_object_or_404(Application, id=application_id)
+        
+        # Получаем данные из POST запроса
+        data = json.loads(request.body)
+        note_text = data.get('note', '').strip()
+        
+        if not note_text:
+            return JsonResponse({
+                'success': False,
+                'message': 'Заметка не может быть пустой'
+            })
+        
+        # Добавляем заметку к существующим заметкам
+        current_notes = application.notes or ""
+        timestamp = timezone.now().strftime("%d.%m.%Y %H:%M")
+        new_note = f"[{timestamp}] {request.user.get_full_name() or request.user.username}: {note_text}"
+        
+        if current_notes:
+            application.notes = f"{current_notes}\n\n{new_note}"
+        else:
+            application.notes = new_note
+            
+        application.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Заметка успешно добавлена',
+            'notes': application.notes
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка при добавлении заметки: {str(e)}'
+        })
+
+
+@login_required
+def add_note_to_application(request, application_id):
+    # Только HR и админы могут добавлять заметки
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для добавления заметок'
+        })
+    
+# core/views.py
+class ApplicationListView(LoginRequiredMixin, ListView):
+    model = Application
+    template_name = 'core/application_list.html'
+    context_object_name = 'applications'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
+        
+        # Если пользователь - кандидат, показываем только его заявки
+        if self.request.user.is_candidate():
+            queryset = queryset.filter(candidate=self.request.user)  # candidate - это User
+        
+        return queryset
+
+
+@hr_required
+@require_POST
+def update_application_status(request, application_id):
+    """Обновление статуса заявки"""
+    try:
+        application = get_object_or_404(Application, id=application_id)
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        
+        if new_status in ['approved', 'rejected']:
+            application.status = new_status
+            application.save()
+            
+            status_text = 'одобрена' if new_status == 'approved' else 'отклонена'
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Заявка {status_text}',
+                'new_status': application.get_status_display()
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Неверный статус'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
+@hr_required
+@login_required
+@require_http_methods(["POST"])
+def schedule_interview_for_application(request, application_id):
+    """Быстрое планирование собеседования"""
+    
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для планирования собеседований'
+        })
+    
+    try:
+        application = get_object_or_404(Application, id=application_id)
+        
+        # Получаем данные из формы
+        date_str = request.POST.get('date')
+        time_str = request.POST.get('time')
+        format_type = request.POST.get('format')
+        location = request.POST.get('location', '')
+        
+        # Валидация
+        if not all([date_str, time_str, format_type]):
+            return JsonResponse({
+                'success': False,
+                'message': 'Заполните все обязательные поля (дата, время, формат)'
+            })
+        
+        # Парсим дату и время
+        from datetime import datetime, timezone
+        try:
+            scheduled_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            scheduled_datetime = scheduled_datetime.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Неверный формат даты или времени'
+            })
+        
+        # Проверяем, что дата в будущем
+        if scheduled_datetime <= datetime.now(timezone.utc):
+            return JsonResponse({
+                'success': False,
+                'message': 'Дата собеседования должна быть в будущем'
+            })
+        
+        # Создаем собеседование
+        from calendar_app.models import Interview, InterviewType
+
+        # Получаем или создаем дефолтный тип собеседования
+        interview_type, created = InterviewType.objects.get_or_create(
+            name='Стандартное собеседование',
+            defaults={
+                'duration_minutes': 60,
+                'is_active': True,
+                'description': 'Стандартное собеседование с кандидатом'
+            }
+        )
+        
+        if created:
+            print(f"Создан новый тип собеседования: {interview_type.name}")
+        
+        interview = Interview.objects.create(
+            application=application,
+            candidate=application.candidate,
+            interviewer=request.user,
+            interview_type=interview_type,  # Обязательно устанавливаем тип
+            scheduled_at=scheduled_datetime,
+            format=format_type,
+            location=location,
+            status='scheduled',
+            duration_minutes=interview_type.duration_minutes
+        )
+        
+        # Обновляем статус заявки
+        application.status = 'approved'
+        application.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Собеседование запланировано на {scheduled_datetime.strftime("%d.%m.%Y в %H:%M")}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Ошибка: {str(e)}'
+        })
+
 
 
 def export_applications_excel(request):
@@ -75,6 +273,30 @@ def export_applications_excel(request):
     
     workbook.save(response)
     return response
+@hr_required
+def create_job(request):
+    """Создание новой вакансии"""
+    if request.method == 'POST':
+        form = JobCreateForm(request.POST)
+        if form.is_valid():
+            job = form.save(commit=False)
+            job.created_by = request.user
+            job.save()
+            
+            messages.success(request, f'Вакансия "{job.title}" успешно создана!')
+            return redirect('core:job_detail', pk=job.id)
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+    else:
+        form = JobCreateForm()
+    
+    return render(request, 'core/create_job.html', {'form': form})
+
+@hr_required  
+def job_list_hr(request):
+    """Список вакансий для HR"""
+    jobs = Job.objects.filter(created_by=request.user).order_by('-created_at')
+    return render(request, 'core/job_list_hr.html', {'jobs': jobs})
 
 class JobListView(ListView):
     model = Job
@@ -201,12 +423,73 @@ def apply_for_job(request, job_id):
     
     return render(request, 'core/apply_job.html', {'job': job, 'form': form})
 
-
-class ApplicationListView(ListView):
+class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
     template_name = 'core/application_list.html'
     context_object_name = 'applications'
     paginate_by = 20
     
     def get_queryset(self):
-        return Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
+        queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
+        
+        # Если пользователь - кандидат, показываем только его заявки
+        if self.request.user.is_candidate():
+            try:
+                candidate = Candidate.objects.get(user=self.request.user)
+                queryset = queryset.filter(candidate=candidate)
+            except Candidate.DoesNotExist:
+                queryset = queryset.none()
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем базовый queryset для статистики
+        base_queryset = self.get_queryset()
+        
+        # Подсчитываем статистику
+        total_applications = base_queryset.count()
+        pending_applications = base_queryset.filter(status='pending').count()
+        approved_applications = base_queryset.filter(status='approved').count()
+        
+        # Добавляем права доступа и статистику в контекст
+        context.update({
+            'can_view_sensitive_data': can_view_sensitive_data(self.request.user),
+            'can_manage_applications': can_manage_applications(self.request.user),
+            'can_export_data': can_export_data(self.request.user),
+            'is_candidate': self.request.user.is_candidate(),
+            'total_applications': total_applications,
+            'pending_applications': pending_applications,
+            'approved_applications': approved_applications,
+        })
+        
+        return context
+
+
+@login_required
+def application_detail(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    
+    # Проверяем права доступа
+    if request.user.is_candidate():
+        try:
+            candidate = Candidate.objects.get(user=request.user)
+            if application.candidate != candidate:
+                raise Http404("Заявка не найдена")
+        except Candidate.DoesNotExist:
+            raise Http404("Заявка не найдена")
+    
+    if request.method == 'GET':
+        html = render_to_string('core/application_detail_modal.html', {
+            'application': application,
+            'can_view_sensitive_data': can_view_sensitive_data(request.user),
+            'can_manage_applications': can_manage_applications(request.user),
+        }, request=request)
+        
+        return JsonResponse({
+            'success': True,
+            'html': html
+        })
+
+

@@ -18,7 +18,29 @@
                         Вакансии
                     </a>
                 </li>
-                
+                {% if user.is_authenticated and user.is_hr %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:job_list_hr' %}">
+                            <i class="fas fa-briefcase me-1"></i>
+                            Мои вакансии
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:create_job' %}">
+                            <i class="fas fa-plus me-1"></i>
+                            Создать вакансию
+                        </a>
+                    </li>
+                {% endif %}
+                {% if user.is_authenticated and user.is_hr %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'analytics' in request.resolver_match.url_name %}active{% endif %}" 
+                        href="{% url 'analytics:dashboard' %}">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Аналитика
+                        </a>
+                    </li>
+                {% endif %}
                 {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'application' in request.resolver_match.url_name %}active{% endif %}" 
@@ -45,62 +67,66 @@
                     </li>
                 {% endif %}
             </ul>
-<ul class="navbar-nav">
-    {% if user.is_authenticated %}
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-               data-bs-toggle="dropdown">
-                <i class="fas fa-user me-1"></i>
-                {{ user.get_full_name|default:user.username }}
-                <span class="badge bg-secondary ms-1">{{ user.get_user_type_display }}</span>
-            </a>
-            <ul class="dropdown-menu">
-                <li>
-                    <a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                        <i class="fas fa-user me-2"></i>
-                        Профиль
-                    </a>
-                </li>
-                {% if user.is_hr %}
-                    <li>
-                        <a class="dropdown-item" href="{% url 'calendar_app:interview_calendar' %}">
-                            <i class="fas fa-calendar me-2"></i>
-                            Мой календарь
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                           data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            {{ user.get_full_name|default:user.username }}
+                            <span class="badge bg-secondary ms-1">{{ user.get_user_type_display }}</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                    <i class="fas fa-user me-2"></i>
+                                    Профиль
+                                </a>
+                            </li>
+                            {% if user.is_hr %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'calendar_app:interview_calendar' %}">
+                                        <i class="fas fa-calendar me-2"></i>
+                                        Мой календарь
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            {% if user.is_admin_user %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Админ панель
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li>
+                                
+                                <form method="post" action="{% url 'accounts:logout' %}" class="d-inline w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item btn btn-link p-0 border-0 text-start w-100 text-decoration-none">
+                                        <i class="fas fa-sign-out-alt me-2"></i>
+                                        Выйти
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:login' %}">
+                            <i class="fas fa-sign-in-alt me-1"></i>
+                            Войти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:register_choice' %}">
+                            <i class="fas fa-user-plus me-1"></i>
+                            Регистрация
                         </a>
                     </li>
                 {% endif %}
-                <li><hr class="dropdown-divider"></li>
-                {% if user.is_admin_user %}
-                    <li>
-                        <a class="dropdown-item" href="{% url 'admin:index' %}">
-                            <i class="fas fa-cog me-2"></i>
-                            Админ панель
-                        </a>
-                    </li>
-                {% endif %}
-                <li>
-                    <a class="dropdown-item" href="{% url 'accounts:logout' %}">
-                        <i class="fas fa-sign-out-alt me-2"></i>
-                        Выйти
-                    </a>
-                </li>
             </ul>
-        </li>
-    {% else %}
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'accounts:login' %}">
-                <i class="fas fa-sign-in-alt me-1"></i>
-                Войти
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'accounts:register_choice' %}">
-                <i class="fas fa-user-plus me-1"></i>
-                Регистрация
-            </a>
-        </li>
-    {% endif %}
-</ul>
         </div>
     </div>
 </nav>

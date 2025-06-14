@@ -1,180 +1,127 @@
+
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Загрузка резюме - AutoHR{% endblock %}
+{% block title %}
+    {% if application %}
+        Загрузка резюме для заявки - AutoHR
+    {% else %}
+        Загрузка резюме - AutoHR
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container my-4">
-    
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            {% if application %}
-                <li class="breadcrumb-item">
-                    <a href="{% url 'core:application_list' %}">Заявки</a>
-                </li>
-                <li class="breadcrumb-item active">Загрузка резюме</li>
-            {% else %}
-                <li class="breadcrumb-item">
-                    <a href="{% url 'resume:resume_list' %}">Резюме</a>
-                </li>
-                <li class="breadcrumb-item active">Загрузка</li>
-            {% endif %}
-        </ol>
-    </nav>
-
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            
-            <div class="text-center mb-4">
-                <h1 class="h2">
-                    <i class="fas fa-cloud-upload-alt me-2 text-primary"></i>
-                    Загрузка резюме
-                </h1>
-                {% if application %}
-                    <p class="text-muted">
-                        Загрузите ваше резюме для анализа соответствия вакансии 
-                        <strong>{{ application.job.title }}</strong>
-                    </p>
-                {% else %}
-                    <p class="text-muted">
-                        Загрузите резюме для анализа с помощью искусственного интеллекта
-                    </p>
-                {% endif %}
-            </div>
-
-            
-            {% if application %}
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h6 class="mb-1">{{ application.job.title }}</h6>
-                                <p class="text-muted mb-0">
-                                    <i class="fas fa-building me-1"></i>
-                                    {{ application.job.company.name }}
-                                </p>
-                            </div>
-                            <div class="col-md-4 text-md-end">
-                                <span class="badge bg-primary">
-                                    {{ application.get_status_display }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            
-            <div class="alert alert-info mb-4">
-                <div class="row align-items-center">
-                    <div class="col-auto">
-                        <i class="fas fa-robot fa-2x"></i>
-                    </div>
-                    <div class="col">
-                        <h6 class="alert-heading mb-1">ИИ-анализ резюме</h6>
-                        <p class="mb-0">
-                            Наш искусственный интеллект автоматически проанализирует ваше резюме и определит:
-                        </p>
-                        <ul class="mb-0 mt-2">
-                            <li>Ключевые навыки и компетенции</li>
-                            <li>Опыт работы и образование</li>
-                            <li>Соответствие требованиям вакансии</li>
-                            <li>Рекомендации по улучшению</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            
+        <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-upload me-2"></i>
-                        Загрузить файл резюме
-                    </h5>
+                    <h4 class="mb-0">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>
+                        {% if application %}
+                            Загрузка резюме для заявки
+                        {% else %}
+                            Загрузка резюме
+                        {% endif %}
+                    </h4>
+                    {% if application %}
+                    <small class="text-muted">
+                        Вакансия: {{ application.job.title }} в {{ application.job.company.name }}
+                    </small>
+                    {% endif %}
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if candidate %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-user me-2"></i>
+                        <strong>Кандидат:</strong> {{ candidate.full_name }} ({{ candidate.email }})
+                    </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
                         {% csrf_token %}
-                        
                         
                         <div class="mb-4">
                             <label for="{{ form.file.id_for_label }}" class="form-label">
-                                Файл резюме <span class="text-danger">*</span>
+                                <strong>{{ form.file.label }}</strong>
                             </label>
-                            <div class="form-upload" id="uploadArea">
-                                <div class="upload-content">
-                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                                    <h5>Перетащите файл сюда или нажмите для выбора</h5>
-                                    <p class="text-muted">
-                                        Поддерживаемые форматы: PDF, DOCX<br>
-                                        Максимальный размер: 10 МБ
-                                    </p>
+                            
+                            <div class="upload-area border border-dashed border-2 p-4 text-center" 
+                                 onclick="document.getElementById('{{ form.file.id_for_label }}').click()">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <div class="h5">Перетащите файл сюда или нажмите для выбора</div>
+                                <div class="text-muted">
+                                    Поддерживаются форматы: PDF, DOCX<br>
+                                    Максимальный размер: 10 MB
                                 </div>
                                 {{ form.file }}
                             </div>
+                            
                             {% if form.file.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.file.errors.0 }}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.file.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div id="file-info" class="mt-2 d-none">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-file me-2"></i>
+                                    <span id="file-name"></span>
+                                    <span class="text-muted">(<span id="file-size"></span>)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.language.id_for_label }}" class="form-label">
+                                {{ form.language.label }}
+                            </label>
+                            {{ form.language }}
+                            {% if form.language.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.language.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.language.id_for_label }}" class="form-label">
-                                    {{ form.language.label }}
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agree_terms" required>
+                                <label class="form-check-label" for="agree_terms">
+                                    Я согласен на обработку моих персональных данных и анализ резюме с помощью ИИ
                                 </label>
-                                {{ form.language }}
-                                <div class="form-text">
-                                    Выберите язык резюме для более точного анализа
-                                </div>
-                                {% if form.language.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.language.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Статус обработки</label>
-                                <div class="form-control-plaintext">
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-clock me-1"></i>
-                                        Ожидает загрузки
-                                    </span>
-                                </div>
                             </div>
                         </div>
 
-                        
-                        <div class="alert alert-warning">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Обратите внимание:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Убедитесь, что резюме содержит актуальную информацию</li>
-                                <li>Файл должен быть читаемым и не содержать ошибок</li>
-                                <li>Анализ может занять несколько минут</li>
-                                <li>Ваши данные обрабатываются конфиденциально</li>
-                            </ul>
-                        </div>
-
-                        
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             {% if application %}
                                 <a href="{% url 'core:application_list' %}" class="btn btn-outline-secondary me-md-2">
                                     <i class="fas fa-arrow-left me-1"></i>
-                                    Назад к заявкам
+                                    К заявкам
                                 </a>
                             {% else %}
                                 <a href="{% url 'resume:resume_list' %}" class="btn btn-outline-secondary me-md-2">
                                     <i class="fas fa-arrow-left me-1"></i>
-                                    Назад к списку
+                                    Отмена
                                 </a>
                             {% endif %}
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <button type="submit" class="btn btn-primary" id="uploadBtn">
                                 <i class="fas fa-upload me-1"></i>
-                                Загрузить и проанализировать
+                                Загрузить резюме
                             </button>
                         </div>
                     </form>
@@ -182,39 +129,55 @@
             </div>
 
             
-            <div class="row mt-4">
-                <div class="col-md-4">
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-search fa-2x text-primary"></i>
-                        </div>
-                        <h6>Детальный анализ</h6>
-                        <p class="text-muted small">
-                            Извлечение и структурирование всей информации из резюме
-                        </p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-chart-line fa-2x text-success"></i>
-                        </div>
-                        <h6>Оценка соответствия</h6>
-                        <p class="text-muted small">
-                            Автоматическое сравнение с требованиями вакансий
-                        </p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-lightbulb fa-2x text-warning"></i>
-                        </div>
-                        <h6>Рекомендации</h6>
-                        <p class="text-muted small">
-                            Персонализированные советы по улучшению резюме
-                        </p>
-                    </div>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {% if application %}
+                            Что произойдет после загрузки?
+                        {% else %}
+                            Рекомендации по загрузке резюме
+                        {% endif %}
+                    </h6>
+                    {% if application %}
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-robot text-primary me-2"></i>
+                            ИИ проанализирует ваше резюме
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-chart-line text-success me-2"></i>
+                            Будет рассчитан процент соответствия вакансии
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-envelope text-info me-2"></i>
+                            HR получит уведомление о вашей заявке
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            Ожидайте обратной связи в течение 3-5 дней
+                        </li>
+                    </ul>
+                    {% else %}
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Используйте актуальную версию резюме
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Убедитесь, что все контакты указаны корректно
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Структурируйте информацию по разделам
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Укажите ключевые навыки и технологии
+                        </li>
+                    </ul>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -222,23 +185,84 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.upload-area {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.upload-area:hover {
+    background-color: #e9ecef;
+    border-color: #007bff !important;
+}
+
+.upload-area.dragover {
+    background-color: #e7f3ff;
+    border-color: #007bff !important;
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Валидация формы
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        } else {
-            // Показать состояние загрузки
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Загрузка...';
+    const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+    const uploadArea = document.querySelector('.upload-area');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Обработка выбора файла
+    fileInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0]);
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
         }
-        form.classList.add('was-validated');
+    });
+
+    function handleFileSelect(file) {
+        if (file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.remove('d-none');
+        }
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Обработка отправки формы
+    uploadForm.addEventListener('submit', function(e) {
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Загрузка...';
+        uploadBtn.disabled = true;
     });
 });
 </script>

@@ -10,27 +10,39 @@
         <div class="col-md-8">
             <h1 class="h2">
                 <i class="fas fa-file-alt me-2 text-primary"></i>
-                Заявки кандидатов
+                {% if is_candidate %}
+                    Мои заявки
+                {% else %}
+                    Заявки кандидатов
+                {% endif %}
             </h1>
-            <p class="text-muted">Управление заявками с ИИ-анализом соответствия</p>
+            <p class="text-muted">
+                {% if is_candidate %}
+                    Отслеживайте статус ваших заявок
+                {% else %}
+                    Управление заявками с ИИ-анализом соответствия
+                {% endif %}
+            </p>
         </div>
         <div class="col-md-4 text-md-end">
+            {% if can_export_data %}
             <div class="btn-group" role="group">
-    <a href="{% url 'core:export_applications' %}" class="btn btn-outline-primary" data-bs-toggle="tooltip" 
-       title="Экспорт в Excel">
-        <i class="fas fa-download me-1"></i>
-        Экспорт
-    </a>
-<button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" 
-        title="Обновить данные" onclick="location.reload()">
-    <i class="fas fa-sync-alt"></i>
-</button>
-</div>
-
+                <a href="{% url 'core:export_applications' %}" class="btn btn-outline-primary" data-bs-toggle="tooltip" 
+                   title="Экспорт в Excel">
+                    <i class="fas fa-download me-1"></i>
+                    Экспорт
+                </a>
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" 
+                        title="Обновить данные" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     
+    {% if not is_candidate %}
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card">
@@ -79,42 +91,44 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="text-primary">
-                                <i class="fas fa-file-alt fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">{{ applications|length }}</div>
-                                <small class="text-muted">Всего заявок</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-warning">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">-</div>
-                                <small class="text-muted">Ожидают</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-success">
-                                <i class="fas fa-check-circle fa-2x"></i>
-                            </div>
-                            <div class="mt-2">
-                                <div class="fw-bold">-</div>
-                                <small class="text-muted">Одобрено</small>
-                            </div>
-                        </div>
+        
+<div class="col-md-4">
+    <div class="card bg-light">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-primary">
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ total_applications }}</div>
+                        <small class="text-muted">Всего заявок</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-warning">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ pending_applications }}</div>
+                        <small class="text-muted">Ожидают</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-success">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <div class="mt-2">
+                        <div class="fw-bold">{{ approved_applications }}</div>
+                        <small class="text-muted">Одобрено</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+    </div>
+    {% endif %}
 
     
     {% if applications %}
@@ -123,10 +137,14 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            {% if not is_candidate %}
                             <th>Кандидат</th>
+                            {% endif %}
                             <th>Вакансия</th>
                             <th>Компания</th>
+                            {% if can_view_sensitive_data %}
                             <th>AI Оценка</th>
+                            {% endif %}
                             <th>Статус</th>
                             <th>Дата подачи</th>
                             <th>Действия</th>
@@ -135,17 +153,23 @@
                     <tbody>
                         {% for application in applications %}
                             <tr>
+                                {% if not is_candidate %}
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle bg-primary text-white me-2">
                                             {{ application.candidate.first_name.0 }}{{ application.candidate.last_name.0 }}
                                         </div>
                                         <div>
-                                            <div class="fw-bold">{{ application.candidate.full_name }}</div>
+                                            <div class="fw-bold">{{ application.candidate.get_full_name }}</div>
+                                            {% if can_view_sensitive_data %}
                                             <small class="text-muted">{{ application.candidate.email }}</small>
+                                            {% else %}
+                                            <small class="text-muted">***@***.***</small>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </td>
+                                {% endif %}
                                 <td>
                                     <a href="{% url 'core:job_detail' application.job.pk %}" 
                                        class="text-decoration-none">
@@ -153,6 +177,7 @@
                                     </a>
                                 </td>
                                 <td>{{ application.job.company.name }}</td>
+                                {% if can_view_sensitive_data %}
                                 <td>
                                     {% if application.ai_score %}
                                         <div class="d-flex align-items-center">
@@ -171,6 +196,7 @@
                                         </span>
                                     {% endif %}
                                 </td>
+                                {% endif %}
                                 <td>
                                     <span class="badge badge-status status-{{ application.status }}">
                                         {% if application.status == 'pending' %}
@@ -192,23 +218,29 @@
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <button type="button" class="btn btn-outline-primary" 
-                                                data-bs-toggle="tooltip" title="Просмотр">
+                                                data-bs-toggle="tooltip" title="Просмотр"
+                                                onclick="viewApplication({{ application.id }})">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        {% if application.status == 'pending' %}
+                                        {% if can_manage_applications and application.status == 'pending' %}
                                             <button type="button" class="btn btn-outline-success" 
-                                                    data-bs-toggle="tooltip" title="Одобрить">
+                                                    data-bs-toggle="tooltip" title="Одобрить"
+                                                    onclick="updateApplicationStatus({{ application.id }}, 'approved')">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                             <button type="button" class="btn btn-outline-danger" 
-                                                    data-bs-toggle="tooltip" title="Отклонить">
+                                                    data-bs-toggle="tooltip" title="Отклонить"
+                                                    onclick="updateApplicationStatus({{ application.id }}, 'rejected')">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         {% endif %}
-                                        <button type="button" class="btn btn-outline-info" 
-                                                data-bs-toggle="tooltip" title="Запланировать собеседование">
-                                            <i class="fas fa-calendar-plus"></i>
-                                        </button>
+                                        {% if can_manage_applications and application.status in 'pending,approved' %}
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    data-bs-toggle="tooltip" title="Запланировать собеседование"
+                                                    onclick="openScheduleModal({{ application.id }})">
+                                                <i class="fas fa-calendar-plus"></i>
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -256,12 +288,127 @@
         <div class="card">
             <div class="card-body text-center py-5">
                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <h4>Заявок пока нет</h4>
-                <p class="text-muted">Заявки от кандидатов будут отображаться здесь</p>
+                <h4>
+                    {% if is_candidate %}
+                        У вас пока нет заявок
+                    {% else %}
+                        Заявок пока нет
+                    {% endif %}
+                </h4>
+                <p class="text-muted">
+                    {% if is_candidate %}
+                        Подайте заявку на интересующую вас вакансию
+                    {% else %}
+                        Заявки от кандидатов будут отображаться здесь
+                    {% endif %}
+                </p>
+                {% if is_candidate %}
+                <a href="{% url 'core:job_list' %}" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i>
+                    Найти вакансии
+                </a>
+                {% endif %}
             </div>
         </div>
     {% endif %}
 </div>
+
+
+
+<div class="modal fade" id="viewApplicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="viewApplicationContent">
+            
+        </div>
+    </div>
+</div>
+
+{% if can_manage_applications %}
+
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>
+                    Быстрое планирование собеседования
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickScheduleForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Дата</label>
+                        <input type="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Время</label>
+                        <input type="time" name="time" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Формат</label>
+                        <select name="format" class="form-select" required>
+                            <option value="online">Онлайн</option>
+                            <option value="offline">В офисе</option>
+                            <option value="phone">Телефон</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Место/Ссылка</label>
+                        <input type="text" name="location" class="form-control" 
+                               placeholder="Адрес или ссылка на видеоконференцию">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickSchedule()">
+                    <i class="fas fa-save me-1"></i>
+                    Запланировать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="addNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sticky-note me-2"></i>
+                    Добавить заметку
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addNoteForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="noteText" class="form-label">Заметка</label>
+                        <textarea id="noteText" name="note" class="form-control" rows="4" 
+                                  placeholder="Введите вашу заметку..." required></textarea>
+                        <div class="form-text">
+                            Заметка будет сохранена с указанием времени и автора
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitNote()">
+                    <i class="fas fa-save me-1"></i>
+                    Сохранить заметку
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -281,5 +428,298 @@
     font-weight: bold;
     min-width: 40px;
 }
+
+.badge-status {
+    font-size: 0.875em;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-processing {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.status-approved {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.status-rejected {
+    background-color: #dc3545;
+    color: #fff;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Переменные для хранения прав доступа
+const canManageApplications = {{ can_manage_applications|yesno:"true,false" }};
+const canViewSensitiveData = {{ can_view_sensitive_data|yesno:"true,false" }};
+
+function updateApplicationStatus(applicationId, status) {
+    if (!canManageApplications) {
+        showNotification('У вас нет прав для изменения статуса заявок', 'error');
+        return;
+    }
+    
+    const statusText = status === 'approved' ? 'одобрить' : 'отклонить';
+    
+    if (confirm(`Вы уверены, что хотите ${statusText} эту заявку?`)) {
+        fetch(`/applications/${applicationId}/update-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                'status': status
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка', 'error');
+        });
+    }
+}
+
+function viewApplication(applicationId) {
+    fetch(`/applications/${applicationId}/detail/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('viewApplicationContent').innerHTML = data.html;
+            const modal = new bootstrap.Modal(document.getElementById('viewApplicationModal'));
+            modal.show();
+        } else {
+            showNotification('Ошибка при загрузке данных', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при загрузке', 'error');
+    });
+}
+
+// Остальные функции только для HR и админов
+{% if can_manage_applications %}
+function openScheduleModal(applicationId) {
+    const modal = document.getElementById('scheduleModal');
+    modal.dataset.applicationId = applicationId;
+    
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+function submitQuickSchedule() {
+    const modal = document.getElementById('scheduleModal');
+    const applicationId = modal.dataset.applicationId;
+    const form = document.getElementById('quickScheduleForm');
+    const formData = new FormData(form);
+    
+    fetch(`/applications/${applicationId}/schedule/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            bootstrap.Modal.getInstance(modal).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка', 'error');
+    });
+}
+
+let currentApplicationIdForNote = null;
+
+function addNoteToApplication(applicationId) {
+    currentApplicationIdForNote = applicationId;
+    document.getElementById('noteText').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('addNoteModal'));
+    modal.show();
+}
+
+function submitNote() {
+    const noteText = document.getElementById('noteText').value.trim();
+    
+    if (!noteText) {
+        showNotification('Пожалуйста, введите текст заметки', 'error');
+        return;
+    }
+    
+    if (!currentApplicationIdForNote) {
+        showNotification('Ошибка: не выбрана заявка', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#addNoteModal .btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Сохранение...';
+    submitBtn.disabled = true;
+    
+    fetch(`/applications/${currentApplicationIdForNote}/add-note/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'note': noteText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+            updateNotesInViewModal(data.notes);
+            document.getElementById('noteText').value = '';
+            currentApplicationIdForNote = null;
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при сохранении заметки', 'error');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+function updateApplicationStatusFromModal(applicationId, status) {
+    updateApplicationStatus(applicationId, status);
+    bootstrap.Modal.getInstance(document.getElementById('viewApplicationModal')).hide();
+}
+
+function scheduleFromModal(applicationId) {
+    bootstrap.Modal.getInstance(document.getElementById('viewApplicationModal')).hide();
+    setTimeout(() => {
+        openScheduleModal(applicationId);
+    }, 300);
+}
+{% endif %}
+
+function updateNotesInViewModal(notes) {
+    const viewModal = document.getElementById('viewApplicationModal');
+    if (viewModal && bootstrap.Modal.getInstance(viewModal)) {
+        const notesSection = viewModal.querySelector('.notes-section');
+        if (notesSection && notes) {
+            notesSection.innerHTML = `
+                <hr>
+                <div class="mb-3">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-sticky-note me-2"></i>
+                        Заметки HR
+                    </h6>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded border-start border-warning border-4">
+                        ${notes.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            `;
+        } else if (!notesSection && notes) {
+            const modalBody = viewModal.querySelector('.modal-body');
+            const notesHtml = `
+                <div class="notes-section">
+                    <hr>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-sticky-note me-2"></i>
+                            Заметки HR
+                        </h6>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded border-start border-warning border-4">
+                            ${notes.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalBody.insertAdjacentHTML('beforeend', notesHtml);
+        }
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-child');
+        if (alert) alert.remove();
+    }, 3000);
+}
+
+// Инициализация tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    {% if can_manage_applications %}
+    const noteTextarea = document.getElementById('noteText');
+    if (noteTextarea) {
+        noteTextarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                submitNote();
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
 {% endblock %}

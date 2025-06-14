@@ -386,3 +386,17 @@ footer {
         padding: 4px 6px;
     }
 }
+/* Стили для кнопки выхода в dropdown */
+.dropdown-item.btn {
+    background: none !important;
+    color: inherit !important;
+    text-align: left !important;
+    padding: 0.25rem 1rem !important;
+    width: 100% !important;
+    border: none !important;
+}
+
+.dropdown-item.btn:hover {
+    background-color: var(--bs-dropdown-link-hover-bg) !important;
+    color: var(--bs-dropdown-link-hover-color) !important;
+}

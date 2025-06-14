@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Создать вакансию - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2 text-primary"></i>
+                        Создать новую вакансию
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                Название вакансии <span class="text-danger">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.company.id_for_label }}" class="form-label">
+                                    Компания
+                                </label>
+                                {{ form.company }}
+                                {% if form.company.errors %}
+                                    <div class="text-danger small">{{ form.company.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.company_name.id_for_label }}" class="form-label">
+                                    Или новая компания
+                                </label>
+                                {{ form.company_name }}
+                                {% if form.company_name.errors %}
+                                    <div class="text-danger small">{{ form.company_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                Описание вакансии <span class="text-danger">*</span>
+                            </label>
+                            {{ form.description }}
+                            <div class="form-text">Подробное описание позиции и обязанностей</div>
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.requirements.id_for_label }}" class="form-label">
+                                Требования <span class="text-danger">*</span>
+                            </label>
+                            {{ form.requirements }}
+                            <div class="form-text">Навыки, опыт и квалификация</div>
+                            {% if form.requirements.errors %}
+                                <div class="text-danger small">{{ form.requirements.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.experience_level.id_for_label }}" class="form-label">
+                                    Уровень опыта
+                                </label>
+                                {{ form.experience_level }}
+                                {% if form.experience_level.errors %}
+                                    <div class="text-danger small">{{ form.experience_level.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.salary_min.id_for_label }}" class="form-label">
+                                    Зарплата от (руб.)
+                                </label>
+                                {{ form.salary_min }}
+                                {% if form.salary_min.errors %}
+                                    <div class="text-danger small">{{ form.salary_min.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.salary_max.id_for_label }}" class="form-label">
+                                    Зарплата до (руб.)
+                                </label>
+                                {{ form.salary_max }}
+                                {% if form.salary_max.errors %}
+                                    <div class="text-danger small">{{ form.salary_max.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.location.id_for_label }}" class="form-label">
+                                    Местоположение <span class="text-danger">*</span>
+                                </label>
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                    <div class="text-danger small">{{ form.location.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex align-items-end">
+                                <div class="form-check">
+                                    {{ form.remote_work }}
+                                    <label class="form-check-label" for="{{ form.remote_work.id_for_label }}">
+                                        Удаленная работа
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:job_list_hr' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                Создать вакансию
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

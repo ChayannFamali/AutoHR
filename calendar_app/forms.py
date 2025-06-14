@@ -6,6 +6,86 @@ from core.models import Application
 from .models import Interview, InterviewType
 
 
+# calendar_app/forms.py
+class QuickScheduleInterviewForm(forms.ModelForm):
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    time = forms.TimeField(
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'})
+    )
+    
+    class Meta:
+        model = Interview
+        fields = ['format', 'location']
+        widgets = {
+            'format': forms.Select(attrs={'class': 'form-select'}),
+            'location': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Адрес или ссылка на видеоконференцию'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        self.application = kwargs.pop('application', None)
+        super().__init__(*args, **kwargs)
+        
+        # Устанавливаем минимальную дату
+        from datetime import date, timedelta
+        tomorrow = date.today() + timedelta(days=1)
+        self.fields['date'].widget.attrs['min'] = tomorrow.isoformat()
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        date_val = cleaned_data.get('date')
+        time_val = cleaned_data.get('time')
+        
+        if date_val and time_val:
+            from datetime import datetime, timezone
+            scheduled_datetime = datetime.combine(date_val, time_val)
+            
+            # Проверяем, что дата в будущем
+            if scheduled_datetime <= datetime.now():
+                raise forms.ValidationError('Дата и время собеседования должны быть в будущем')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        interview = super().save(commit=False)
+        
+        # Устанавливаем обязательные поля
+        if self.application:
+            interview.application = self.application
+            interview.candidate = self.application.candidate
+        
+        if self.user:
+            interview.interviewer = self.user
+        
+        # Объединяем дату и время
+        from datetime import datetime, timezone
+        scheduled_date = self.cleaned_data['date']
+        scheduled_time = self.cleaned_data['time']
+        interview.scheduled_at = datetime.combine(scheduled_date, scheduled_time).replace(tzinfo=timezone.utc)
+        
+        # Устанавливаем дефолтные значения
+        interview.status = 'scheduled'
+        interview.duration_minutes = 60  # дефолтная длительность
+        
+        # Получаем дефолтный тип собеседования
+        try:
+            default_type = InterviewType.objects.filter(is_active=True).first()
+            if default_type:
+                interview.interview_type = default_type
+                interview.duration_minutes = default_type.duration_minutes
+        except:
+            pass
+        
+        if commit:
+            interview.save()
+        
+        return interview
+
 class ScheduleInterviewForm(forms.ModelForm):
     application = forms.ModelChoiceField(
         queryset=Application.objects.filter(status__in=['approved', 'pending']),
