@@ -112,7 +112,7 @@ AutoHR/
 
 ## 📊 Статистика
 
-![GitHub stars](https://img.shields.io/github/stars/yourusername/autohr?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/autohr?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/autohr)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/autohr)
+![GitHub stars](https://img.shields.io/github/stars/ChayannFamali/AutoHR?style=social)
+![GitHub forks](https://img.shields.io/github/forks/ChayannFamali/AutoHR?style=social)
+![GitHub issues](https://img.shields.io/github/issues/ChayannFamali/AutoHR)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/ChayannFamali/AutoHR)
