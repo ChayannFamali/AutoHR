@@ -77,7 +77,6 @@ class Command(BaseCommand):
     
     def process_batch_resumes(self, analysis_engine, batch_size, force_reprocess):
         """Обрабатывает пакет резюме"""
-        # Определяем резюме для обработки
         if force_reprocess:
             resumes = Resume.objects.all()[:batch_size]
             self.stdout.write(f"Force reprocessing {len(resumes)} resumes")
@@ -117,7 +116,6 @@ class Command(BaseCommand):
                     self.style.ERROR(f"✗ Error {resume.original_filename}: {str(e)}")
                 )
         
-        # Итоговая статистика
         self.stdout.write(
             self.style.SUCCESS(
                 f"\nBatch processing completed:\n"

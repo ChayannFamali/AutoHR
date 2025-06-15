@@ -26,7 +26,6 @@ class MatchingService:
             dict: Метрики соответствия
         """
         try:
-            # Инициализируем результат
             match_result = {
                 'overall_score': 0.0,
                 'skills_score': 0.0,
@@ -105,18 +104,15 @@ class MatchingService:
                 'missing': []
             }
         
-        # Нормализуем навыки для сравнения
         candidate_skills_lower = [skill.lower().strip() for skill in candidate_skills]
         required_skills_lower = [skill.lower().strip() for skill in required_skills]
         
-        # Находим точные совпадения
         matched_skills = []
         for req_skill in required_skills:
             req_skill_lower = req_skill.lower().strip()
             if req_skill_lower in candidate_skills_lower:
                 matched_skills.append(req_skill)
         
-        # Находим частичные совпадения (подстроки)
         for req_skill in required_skills:
             if req_skill in matched_skills:
                 continue
@@ -125,16 +121,13 @@ class MatchingService:
             for cand_skill in candidate_skills:
                 cand_skill_lower = cand_skill.lower().strip()
                 
-                # Проверяем, содержится ли один навык в другом
                 if (req_skill_lower in cand_skill_lower or 
                     cand_skill_lower in req_skill_lower):
                     matched_skills.append(req_skill)
                     break
         
-        # Вычисляем недостающие навыки
         missing_skills = [skill for skill in required_skills if skill not in matched_skills]
         
-        # Вычисляем оценку
         if not required_skills:
             score = 1.0
         else:
@@ -192,7 +185,6 @@ class MatchingService:
         
         required_level = required_level.lower()
         
-        # Определяем соответствие уровней
         level_mapping = {
             'junior': (0, 2),
             'middle': (2, 5),
@@ -204,13 +196,11 @@ class MatchingService:
                 if min_years <= candidate_years <= max_years:
                     return 1.0
                 elif candidate_years > max_years:
-                    # Переквалификация (senior может работать middle/junior)
                     return 0.8
                 else:
-                    # Недостаточно опыта
                     return candidate_years / min_years if min_years > 0 else 0.0
         
-        return 0.5  # Неопределенный уровень
+        return 0.5
     
     def _find_relevant_experience(self, work_experience: List[Dict], job_context: str) -> List[Dict]:
         """Находит релевантный опыт работы"""
@@ -226,7 +216,6 @@ class MatchingService:
             company = exp.get('company', '').lower()
             description = exp.get('description', '').lower()
             
-            # Ищем ключевые слова в описании опыта
             if any(keyword in position + company + description 
                    for keyword in job_context_lower.split()):
                 relevant.append(exp)
@@ -272,7 +261,6 @@ class MatchingService:
             recommendation = "weak_match"
             reason = "Кандидат слабо подходит для данной позиции."
         
-        # Добавляем детали
         details = []
         
         if skills_score < 0.5:
@@ -288,7 +276,6 @@ class MatchingService:
         if experience_score > 0.8:
             details.append("Подходящий уровень опыта.")
         
-        # Объединяем рекомендацию
         full_reason = reason
         if details:
             full_reason += " " + " ".join(details)

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
-# Create your views here.
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -65,7 +64,6 @@ def ai_scores_distribution(request):
         ai_score__isnull=False
     ).values_list('ai_score', flat=True)
     
-    # Группируем по диапазонам
     ranges = {
         '0.0-0.2': 0,
         '0.2-0.4': 0,
@@ -98,13 +96,11 @@ def popular_skills_data(request):
         status='processed'
     ).values_list('skills', flat=True)
     
-    # Собираем все навыки
     all_skills = []
     for skills_list in resumes:
         if skills_list:
             all_skills.extend(skills_list)
     
-    # Подсчитываем частоту
     skill_counter = Counter(all_skills)
     top_skills = skill_counter.most_common(10)
     

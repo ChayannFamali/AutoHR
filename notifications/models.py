@@ -14,7 +14,6 @@ class NotificationType(models.Model):
     description = models.TextField(blank=True, verbose_name="Описание")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     
-    # Шаблоны
     email_subject_template = models.CharField(max_length=200, blank=True, verbose_name="Шаблон темы email")
     email_body_template = models.TextField(blank=True, verbose_name="Шаблон тела email")
     sms_template = models.TextField(blank=True, verbose_name="Шаблон SMS")
@@ -55,12 +54,10 @@ class Notification(models.Model):
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey('content_type', 'object_id')
     
-    # Содержимое
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, verbose_name="Канал")
     subject = models.CharField(max_length=200, blank=True, verbose_name="Тема")
     message = models.TextField(verbose_name="Сообщение")
     
-    # Статус и метаданные
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
     scheduled_at = models.DateTimeField(null=True, blank=True, verbose_name="Запланировано на")
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Отправлено в")
@@ -116,7 +113,6 @@ class NotificationPreference(models.Model):
     sms_enabled = models.BooleanField(default=False, verbose_name="SMS уведомления")
     in_app_enabled = models.BooleanField(default=True, verbose_name="Уведомления в приложении")
     
-    # Предпочтения по типам
     new_application_email = models.BooleanField(default=True, verbose_name="Новая заявка (Email)")
     interview_reminder_email = models.BooleanField(default=True, verbose_name="Напоминание о собеседовании (Email)")
     interview_reminder_sms = models.BooleanField(default=False, verbose_name="Напоминание о собеседовании (SMS)")

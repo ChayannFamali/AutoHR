@@ -6,7 +6,6 @@ from core.models import Application
 from .models import Interview, InterviewType
 
 
-# calendar_app/forms.py
 class QuickScheduleInterviewForm(forms.ModelForm):
     date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
@@ -45,7 +44,6 @@ class QuickScheduleInterviewForm(forms.ModelForm):
             from datetime import datetime, timezone
             scheduled_datetime = datetime.combine(date_val, time_val)
             
-            # Проверяем, что дата в будущем
             if scheduled_datetime <= datetime.now():
                 raise forms.ValidationError('Дата и время собеседования должны быть в будущем')
         
@@ -54,7 +52,6 @@ class QuickScheduleInterviewForm(forms.ModelForm):
     def save(self, commit=True):
         interview = super().save(commit=False)
         
-        # Устанавливаем обязательные поля
         if self.application:
             interview.application = self.application
             interview.candidate = self.application.candidate
@@ -62,17 +59,13 @@ class QuickScheduleInterviewForm(forms.ModelForm):
         if self.user:
             interview.interviewer = self.user
         
-        # Объединяем дату и время
         from datetime import datetime, timezone
         scheduled_date = self.cleaned_data['date']
         scheduled_time = self.cleaned_data['time']
         interview.scheduled_at = datetime.combine(scheduled_date, scheduled_time).replace(tzinfo=timezone.utc)
         
-        # Устанавливаем дефолтные значения
         interview.status = 'scheduled'
-        interview.duration_minutes = 60  # дефолтная длительность
-        
-        # Получаем дефолтный тип собеседования
+        interview.duration_minutes = 60
         try:
             default_type = InterviewType.objects.filter(is_active=True).first()
             if default_type:
@@ -127,14 +120,12 @@ class ScheduleInterviewForm(forms.ModelForm):
         if user:
             self.fields['interviewer'].initial = user
         
-        # Добавляем описания к полям
         self.fields['application'].help_text = "Выберите заявку кандидата"
         self.fields['location'].help_text = "Укажите адрес офиса или ссылку на видеоконференцию"
     
     def save(self, commit=True):
         interview = super().save(commit=False)
         
-        # Объединяем дату и время
         scheduled_date = self.cleaned_data['scheduled_date']
         scheduled_time = self.cleaned_data['scheduled_time']
         
@@ -142,10 +133,8 @@ class ScheduleInterviewForm(forms.ModelForm):
         from datetime import timezone as tz
         interview.scheduled_at = datetime.combine(scheduled_date, scheduled_time).replace(tzinfo=tz.utc)
         
-        # Устанавливаем кандидата из заявки
         interview.candidate = self.cleaned_data['application'].candidate
         
-        # Устанавливаем длительность из типа собеседования
         interview.duration_minutes = self.cleaned_data['interview_type'].duration_minutes
         
         if commit:

@@ -35,10 +35,8 @@ class AnalysisEngine:
             dict: Результаты анализа
         """
         try:
-            # Получаем резюме
             resume = Resume.objects.get(id=resume_id)
             
-            # Создаем задачу анализа
             task = AnalysisTask.objects.create(
                 task_type='resume_analysis',
                 resume=resume,
@@ -134,13 +132,11 @@ class AnalysisEngine:
         except Exception as e:
             logger.error(f"Error analyzing resume {resume_id}: {str(e)}")
             
-            # Обновляем статус задачи при ошибке
             if 'task' in locals():
                 task.status = 'failed'
                 task.error_message = str(e)
                 task.save()
             
-            # Обновляем статус резюме
             try:
                 resume = Resume.objects.get(id=resume_id)
                 resume.status = 'error'
@@ -172,18 +168,15 @@ class AnalysisEngine:
             
             logger.info(f"Matching resume_id={resume_id} with job_id={job_id}")
             
-            # Убеждаемся, что резюме проанализировано
             if resume.status != 'processed':
                 self.analyze_resume(resume_id)
                 resume.refresh_from_db()
             
-            # Создаем embeddings для вакансии, если их нет
             if not job.requirements_embedding:
                 job_text = f"{job.description} {job.requirements}"
                 job.requirements_embedding = self.embedding_service.create_text_embedding(job_text)
                 job.save()
             
-            # Подготавливаем данные для сопоставления
             resume_data = {
                 'skills': resume.skills or [],
                 'experience_years': resume.experience_years or 0,
@@ -198,15 +191,12 @@ class AnalysisEngine:
                 'requirements_embedding': job.requirements_embedding or []
             }
             
-            # Выполняем сопоставление
             match_result = self.matching_service.calculate_candidate_job_match(
                 resume_data, job_data
             )
             
-            # Генерируем рекомендацию
             recommendation = self.matching_service.generate_recommendation(match_result)
             
-            # Сохраняем результат в базе данных
             job_match, created = JobCandidateMatch.objects.get_or_create(
                 job=job,
                 candidate=resume.candidate,
@@ -292,7 +282,6 @@ class AnalysisEngine:
         score = 0.0
         max_score = 10.0
         
-        # Проверяем наличие основных элементов
         if resume.extracted_text and len(resume.extracted_text) > 100:
             score += 2.0  # Есть содержательный текст
         
@@ -320,11 +309,9 @@ class AnalysisEngine:
         """Извлекает ключевые слова для релевантности"""
         keywords = []
         
-        # Добавляем навыки
         for skill in skills:
             keywords.append(skill.get('name', ''))
         
-        # Добавляем должности
         for exp in work_experience:
             if exp.get('position'):
                 keywords.append(exp['position'])

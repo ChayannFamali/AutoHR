@@ -25,7 +25,6 @@ class EmbeddingService:
             logger.info("Embedding model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {str(e)}")
-            # Fallback на более простую модель
             try:
                 logger.info("Trying fallback model...")
                 self.model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
@@ -49,7 +48,6 @@ class EmbeddingService:
             return []
         
         try:
-            # Ограничиваем длину текста (модели имеют лимиты)
             max_length = 512
             if len(text) > max_length:
                 text = text[:max_length]
@@ -74,7 +72,6 @@ class EmbeddingService:
         if not skills:
             return []
         
-        # Объединяем навыки в текст
         skills_text = " ".join(skills)
         return self.create_text_embedding(skills_text)
     
@@ -111,11 +108,9 @@ class EmbeddingService:
             return 0.0
         
         try:
-            # Преобразуем в numpy массивы
             vec1 = np.array(embedding1)
             vec2 = np.array(embedding2)
             
-            # Вычисляем косинусное сходство
             dot_product = np.dot(vec1, vec2)
             norm1 = np.linalg.norm(vec1)
             norm2 = np.linalg.norm(vec2)
@@ -125,7 +120,6 @@ class EmbeddingService:
             
             similarity = dot_product / (norm1 * norm2)
             
-            # Нормализуем в диапазон [0, 1]
             similarity = (similarity + 1) / 2
             
             return float(similarity)
@@ -154,7 +148,6 @@ class EmbeddingService:
             similarity = self.calculate_similarity(query_embedding, candidate_embedding)
             similarities.append((i, similarity))
         
-        # Сортируем по убыванию сходства
         similarities.sort(key=lambda x: x[1], reverse=True)
         
         return similarities[:top_k]

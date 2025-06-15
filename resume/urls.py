@@ -4,12 +4,6 @@ from . import views
 
 app_name = 'resume'
 
-from django.urls import path
-
-from . import views
-
-app_name = 'resume'
-
 urlpatterns = [
     path('upload/', views.upload_resume, name='upload_resume'),
     path('upload/<int:application_id>/', views.upload_resume, name='upload_resume_for_application'),

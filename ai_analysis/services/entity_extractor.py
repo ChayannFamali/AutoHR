@@ -26,7 +26,6 @@ class EntityExtractor:
         found_skills = []
         text_lower = text.lower()
         
-        # Поиск навыков в тексте
         for skill in self.skills_set:
             if self._is_skill_mentioned(skill, text_lower):
                 normalized_skill = normalize_skill(skill)
@@ -38,7 +37,6 @@ class EntityExtractor:
                     'original': skill
                 })
         
-        # Удаляем дубликаты
         unique_skills = []
         seen_skills = set()
         
@@ -61,7 +59,6 @@ class EntityExtractor:
         Returns:
             bool: True если навык найден
         """
-        # Создаем паттерн для поиска навыка как отдельного слова
         pattern = r'\b' + re.escape(skill.lower()) + r'\b'
         return bool(re.search(pattern, text))
     
@@ -77,7 +74,6 @@ class EntityExtractor:
         """
         experience_entries = []
         
-        # Паттерны для поиска опыта работы
         job_patterns = [
             # Паттерн: Должность в Компании (даты)
             r'([А-ЯA-Z][а-яa-z\s]+(?:разработчик|developer|менеджер|manager|аналитик|analyst|дизайнер|designer|инженер|engineer))\s+(?:в|at|@)\s+([А-ЯA-Z][а-яa-z\s&.]+)(?:\s+(\d{4}[-–—]\d{4}|\d{4}[-–—]н\.в\.|\d{4}[-–—]present))?',
@@ -174,7 +170,6 @@ class EntityExtractor:
         languages = []
         text_lower = text.lower()
         
-        # Языки и их варианты написания
         language_variants = {
             'русский': ['русский', 'russian'],
             'английский': ['английский', 'english', 'англ'],
@@ -186,7 +181,6 @@ class EntityExtractor:
             'японский': ['японский', 'japanese', '日本語']
         }
         
-        # Уровни владения
         level_patterns = {
             'native': ['родной', 'native', 'носитель'],
             'fluent': ['свободно', 'fluent', 'c2', 'продвинутый'],
@@ -198,7 +192,6 @@ class EntityExtractor:
         for lang_name, variants in language_variants.items():
             for variant in variants:
                 if variant in text_lower:
-                    # Ищем уровень рядом с языком
                     level = 'unknown'
                     for level_name, level_variants in level_patterns.items():
                         for level_variant in level_variants:

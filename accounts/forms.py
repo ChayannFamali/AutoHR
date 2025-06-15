@@ -23,7 +23,6 @@ class HRRegistrationForm(UserCreationForm):
         self.fields['password1'].widget.attrs['class'] = 'form-control'
         self.fields['password2'].widget.attrs['class'] = 'form-control'
         
-        # Добавляем подсказки
         self.fields['username'].help_text = 'Уникальное имя пользователя'
         self.fields['email'].help_text = 'Рабочий email адрес'
         self.fields['company'].help_text = 'Название вашей компании'
@@ -38,7 +37,6 @@ class HRRegistrationForm(UserCreationForm):
         
         if commit:
             user.save()
-            # Создаем профиль
             UserProfile.objects.create(user=user)
         
         return user
@@ -67,7 +65,6 @@ class CandidateRegistrationForm(UserCreationForm):
         
         if commit:
             user.save()
-            # Создаем профиль
             UserProfile.objects.create(user=user)
         
         return user
@@ -81,7 +78,6 @@ class CustomLoginForm(AuthenticationForm):
         password = self.cleaned_data.get('password')
         
         if username and password:
-            # Проверяем, может быть введен email вместо username
             if '@' in username:
                 try:
                     user = User.objects.get(email=username)

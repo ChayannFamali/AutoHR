@@ -6,9 +6,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db.models import Q  # если еще не добавлен
-from django.db.models import Count
-from django.http import JsonResponse  # если еще не добавлен
+from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
@@ -36,7 +35,6 @@ def send_interview_reminder(request, interview_id):
     try:
         interview = get_object_or_404(Interview, id=interview_id)
         
-        # Отправляем email напоминание
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
         
@@ -61,7 +59,7 @@ def send_interview_reminder(request, interview_id):
         send_mail(
             subject,
             message,
-            'noreply@autohr.com',  # замените на ваш email
+            'noreply@autohr.com',
             [interview.candidate.email],
             fail_silently=False,
         )
@@ -81,7 +79,6 @@ def send_interview_reminder(request, interview_id):
 def interview_list(request):
     """Список всех собеседований с фильтрами"""
     
-    # Базовый queryset
     if request.user.is_hr() or request.user.is_admin_user():
         interviews = Interview.objects.select_related(
             'candidate', 'interviewer', 'application__job'
@@ -91,7 +88,6 @@ def interview_list(request):
             candidate__user=request.user
         ).select_related('interviewer', 'application__job').order_by('scheduled_at')
     
-    # Применяем фильтры
     status_filter = request.GET.get('status')
     if status_filter:
         interviews = interviews.filter(status=status_filter)
@@ -104,7 +100,6 @@ def interview_list(request):
     if date_filter:
         interviews = interviews.filter(scheduled_at__date=date_filter)
     
-    # Подсчитываем статистику (для всех собеседований, не только отфильтрованных)
     all_interviews = Interview.objects.all()
     if not (request.user.is_hr() or request.user.is_admin_user()):
         all_interviews = Interview.objects.filter(candidate__user=request.user)
@@ -116,7 +111,6 @@ def interview_list(request):
         completed=Count('id', filter=Q(status='completed')),
     )
     
-    # Получаем список интервьюеров для фильтра
     from accounts.models import User
     interviewers = User.objects.filter(
         Q(user_type='hr') | Q(user_type='admin') | Q(is_staff=True)
@@ -181,7 +175,6 @@ def update_interview_status(request, interview_id):
         interview.status = new_status
         interview.save()
         
-        # Обновляем статус заявки при необходимости
         if new_status == 'completed':
             interview.application.status = 'interviewed'
             interview.application.save()
@@ -224,7 +217,6 @@ def reschedule_interview(request, interview_id):
                 'message': 'Укажите новые дату и время'
             })
         
-        # Парсим новую дату и время
         try:
             new_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
             new_datetime = new_datetime.replace(tzinfo=timezone.utc)
@@ -234,17 +226,14 @@ def reschedule_interview(request, interview_id):
                 'message': 'Неверный формат даты или времени'
             })
         
-        # Проверяем, что дата в будущем
         if new_datetime <= datetime.now(timezone.utc):
             return JsonResponse({
                 'success': False,
                 'message': 'Новая дата должна быть в будущем'
             })
         
-        # Сохраняем старую дату для истории
         old_datetime = interview.scheduled_at
         
-        # Обновляем собеседование
         interview.scheduled_at = new_datetime
         interview.status = 'rescheduled'
         if reason:
@@ -284,7 +273,6 @@ def add_interview_notes(request, interview_id):
                 'message': 'Заметка не может быть пустой'
             })
         
-        # Добавляем заметку с временной меткой
         timestamp = datetime.now().strftime("%d.%m.%Y %H:%M")
         user_name = request.user.get_full_name() or request.user.username
         new_note = f"[{timestamp}] {user_name}: {notes}"
@@ -316,20 +304,16 @@ def schedule_interview(request):
             try:
                 interview = form.save()
                 
-                # Обновляем статус заявки
                 application = interview.application
                 if application.status == 'pending':
                     application.status = 'approved'
                     application.save()
                 
-                # Отправляем уведомления
                 try:
                     from notifications.services import NotificationService
 
-                    # Уведомление кандидату о назначенном собеседовании
                     NotificationService.send_interview_scheduled(interview)
                     
-                    # Уведомление HR о созданном собеседовании
                     hr_message = f'Собеседование запланировано:\n\n'
                     hr_message += f'Кандидат: {interview.candidate.full_name}\n'
                     hr_message += f'Вакансия: {interview.application.job.title}\n'
@@ -394,7 +378,6 @@ class InterviewListView(ListView):
             'candidate', 'interviewer', 'application__job', 'interview_type'
         ).order_by('scheduled_at')
         
-        # Применяем фильтры
         status_filter = self.request.GET.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
@@ -412,7 +395,6 @@ class InterviewListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Подсчитываем статистику
         all_interviews = Interview.objects.all()
         today = date.today()
         stats = all_interviews.aggregate(
@@ -440,33 +422,19 @@ def interview_detail(request, pk):
     interview = get_object_or_404(Interview, pk=pk)
     return render(request, 'calendar_app/interview_detail.html', {'interview': interview})
 
-
-# @login_required
-# def interview_calendar(request):
-#     interviews = Interview.objects.filter(
-#         interviewer=request.user,
-#         status__in=['scheduled', 'confirmed']
-#     ).select_related('candidate').order_by('scheduled_at')
-    
-#     return render(request, 'calendar_app/interview_calendar.html', {'interviews': interviews})
-
-
 @login_required
 def interview_calendar(request):
     """Календарь собеседований"""
     
-    # Получаем собеседования для календаря
     interviews = Interview.objects.select_related(
         'candidate', 'interviewer', 'application__job'
     ).filter(
         scheduled_at__isnull=False
     )
     
-    # Фильтруем по правам доступа
     if not (request.user.is_hr() or request.user.is_admin_user()):
         interviews = interviews.filter(candidate__user=request.user)
     
-    # Формируем события для календаря
     events = []
     for interview in interviews:
         color = {

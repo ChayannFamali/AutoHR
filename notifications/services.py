@@ -24,7 +24,7 @@ class NotificationService:
                        f'С уважением,\nКоманда AutoHR',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[application.candidate.email],
-                fail_silently=True,  # Не ломаем приложение если email не настроен
+                fail_silently=True,
             )
             
             logger.info(f'Application confirmation sent to {application.candidate.email}')

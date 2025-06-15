@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-# Create your models here.
 from django.db import models
 from django.db.models import Avg, Count
 from django.utils import timezone

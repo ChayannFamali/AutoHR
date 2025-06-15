@@ -41,22 +41,18 @@ class Interview(models.Model):
     application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name="Заявка")
     interview_type = models.ForeignKey(InterviewType, on_delete=models.CASCADE, verbose_name="Тип собеседования")
     
-    # Участники
     interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Интервьюер")
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, verbose_name="Кандидат")
     
-    # Время и место
     scheduled_at = models.DateTimeField(verbose_name="Запланировано на")
     duration_minutes = models.PositiveIntegerField(default=60, verbose_name="Длительность (мин)")
     format = models.CharField(max_length=20, choices=FORMAT_CHOICES, verbose_name="Формат")
     location = models.CharField(max_length=200, blank=True, verbose_name="Место/Ссылка")
     
-    # Статус и заметки
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="Статус")
     notes = models.TextField(blank=True, verbose_name="Заметки")
     preparation_notes = models.TextField(blank=True, verbose_name="Заметки для подготовки")
     
-    # Результаты
     feedback = models.TextField(blank=True, verbose_name="Обратная связь")
     rating = models.PositiveIntegerField(
         null=True, 
@@ -65,7 +61,6 @@ class Interview(models.Model):
         verbose_name="Оценка (1-5)"
     )
     
-    # Временные метки
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)

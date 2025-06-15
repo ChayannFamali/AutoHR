@@ -1,4 +1,3 @@
-# core/utils.py
 def can_view_sensitive_data(user):
     """Может ли пользователь видеть чувствительные данные (AI оценка, email, телефон)"""
     if not user.is_authenticated:

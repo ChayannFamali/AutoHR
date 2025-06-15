@@ -37,7 +37,6 @@ class Command(BaseCommand):
         """Обновляет embeddings для вакансий"""
         self.stdout.write("Updating job embeddings...")
         
-        # Определяем вакансии для обновления
         if force_update:
             jobs = Job.objects.all()
         else:
@@ -48,10 +47,8 @@ class Command(BaseCommand):
         
         for job in jobs:
             try:
-                # Создаем текст для embedding
                 job_text = f"{job.title} {job.description} {job.requirements}"
                 
-                # Создаем embedding
                 embedding = embedding_service.create_text_embedding(job_text)
                 
                 if embedding:
@@ -81,7 +78,6 @@ class Command(BaseCommand):
         """Обновляет embeddings для резюме"""
         self.stdout.write("Updating resume embeddings...")
         
-        # Определяем резюме для обновления
         if force_update:
             resumes = Resume.objects.filter(status='processed')
         else:
@@ -98,19 +94,16 @@ class Command(BaseCommand):
                 if not resume.extracted_text:
                     continue
                 
-                # Создаем embedding для текста
                 text_embedding = embedding_service.create_text_embedding(
                     resume.extracted_text
                 )
                 
-                # Создаем embedding для навыков
                 skills_embedding = None
                 if resume.skills:
                     skills_embedding = embedding_service.create_skills_embedding(
                         resume.skills
                     )
                 
-                # Обновляем резюме
                 if text_embedding:
                     resume.text_embedding = text_embedding
                     if skills_embedding:

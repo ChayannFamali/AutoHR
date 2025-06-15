@@ -4,7 +4,8 @@ import logging
 
 import openpyxl
 from django.contrib import messages
-from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,23 +18,15 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from ai_analysis.services.analysis_engine import AnalysisEngine
-from core.models import Application
+from core.models import Application, Candidate
+from core.utils import (can_export_data, can_manage_applications,
+                        can_view_sensitive_data)
 
 from .forms import ResumeUploadForm
-from .models import Resume
+from .models import Candidate, Resume
 
 logger = logging.getLogger(__name__)
 
-from django.contrib import messages
-# resume/views.py
-# resume/views.py
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-
-from core.models import Application, Candidate
-
-from .forms import ResumeUploadForm
-from .models import Resume
 
 
 @login_required
@@ -41,17 +34,14 @@ def upload_resume(request, application_id=None):
     application = None
     candidate = None
     
-    # Если указан application_id, получаем заявку
     if application_id:
         application = get_object_or_404(Application, id=application_id)
         candidate = application.candidate
     else:
-        # Если пользователь - кандидат, получаем его профиль кандидата
         if request.user.is_candidate():
             try:
                 candidate = Candidate.objects.get(user=request.user)
             except Candidate.DoesNotExist:
-                # Создаем профиль кандидата если его нет
                 candidate = Candidate.objects.create(
                     user=request.user,
                     first_name=request.user.first_name or 'Не указано',
@@ -74,7 +64,6 @@ def upload_resume(request, application_id=None):
                 
                 resume.save()
                 
-                # Пытаемся запустить AI-анализ (опционально)
                 try:
                     from ai_analysis.services.analysis_engine import \
                         AnalysisEngine
@@ -88,7 +77,6 @@ def upload_resume(request, application_id=None):
                     if analysis_result['success']:
                         messages.success(request, 'Резюме успешно загружено и проанализировано!')
                         
-                        # Сопоставление с вакансией
                         if application:
                             match_result = analysis_engine.match_candidate_with_job(
                                 resume.id, application.job.id
@@ -101,13 +89,11 @@ def upload_resume(request, application_id=None):
                         messages.warning(request, 'Резюме загружено, но AI-анализ не удался.')
                         
                 except ImportError:
-                    # AI библиотеки не установлены
                     resume.status = 'uploaded'
                     resume.save()
                     messages.success(request, 'Резюме успешно загружено! (AI-анализ недоступен)')
                     
                 except Exception as e:
-                    # Ошибка AI-анализа
                     resume.status = 'error'
                     resume.processing_error = str(e)
                     resume.save()
@@ -137,7 +123,6 @@ def reprocess_resume(request, resume_id):
         try:
             resume = get_object_or_404(Resume, id=resume_id)
             
-            # Запускаем повторный анализ
             analysis_engine = AnalysisEngine()
             resume.status = 'processing'
             resume.processing_error = ''
@@ -148,7 +133,6 @@ def reprocess_resume(request, resume_id):
             if analysis_result['success']:
                 messages.success(request, 'Резюме успешно переобработано!')
                 
-                # Если есть связанная заявка, обновляем сопоставление
                 if resume.application:
                     match_result = analysis_engine.match_candidate_with_job(
                         resume_id, 
@@ -170,15 +154,12 @@ def reprocess_resume(request, resume_id):
 
 
 def export_resumes_excel(request):
-    # Получаем параметры фильтрации
     status = request.GET.get('status')
     language = request.GET.get('language')
     candidate = request.GET.get('candidate')
     
-    # Базовый queryset
     resumes = Resume.objects.select_related('candidate').order_by('-uploaded_at')
     
-    # Применяем фильтры
     if status:
         resumes = resumes.filter(status=status)
     if language:
@@ -190,12 +171,10 @@ def export_resumes_excel(request):
             Q(candidate__email__icontains=candidate)
         )
     
-    # Создаем Excel файл
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = 'Резюме кандидатов'
     
-    # Заголовки
     headers = [
         'ID', 'Кандидат', 'Email', 'Файл', 'Размер', 'Язык', 
         'Статус', 'Опыт (лет)', 'Навыки', 'Дата загрузки'
@@ -208,7 +187,6 @@ def export_resumes_excel(request):
         cell.alignment = Alignment(horizontal='center')
         cell.fill = PatternFill(start_color='CCCCCC', end_color='CCCCCC', fill_type='solid')
     
-    # Данные
     for row_num, resume in enumerate(resumes, 2):
         worksheet.cell(row=row_num, column=1, value=resume.id)
         worksheet.cell(row=row_num, column=2, value=resume.candidate.full_name)
@@ -221,7 +199,6 @@ def export_resumes_excel(request):
         worksheet.cell(row=row_num, column=9, value=', '.join(resume.skills[:5]) if resume.skills else '-')
         worksheet.cell(row=row_num, column=10, value=resume.uploaded_at.strftime('%d.%m.%Y %H:%M'))
     
-    # Автоподбор ширины столбцов
     for column in worksheet.columns:
         max_length = 0
         column_letter = column[0].column_letter
@@ -243,7 +220,6 @@ def export_resumes_excel(request):
     return response
 
 def export_resumes_csv(request):
-    # Получаем данные с теми же фильтрами
     status = request.GET.get('status')
     language = request.GET.get('language')
     candidate = request.GET.get('candidate')
@@ -264,7 +240,6 @@ def export_resumes_csv(request):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="resumes_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
     
-    # BOM для корректного отображения кириллицы в Excel
     response.write('\ufeff')
     
     writer = csv.writer(response)
@@ -299,7 +274,6 @@ def export_resumes_pdf(request):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.pdfgen import canvas
 
-    # Получаем данные
     status = request.GET.get('status')
     language = request.GET.get('language')
     candidate = request.GET.get('candidate')
@@ -317,13 +291,11 @@ def export_resumes_pdf(request):
             Q(candidate__email__icontains=candidate)
         )
     
-    # Создаем PDF
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
     try:
-        # Пытаемся зарегистрировать шрифт с поддержкой кириллицы
         # Для Windows
         if os.path.exists('C:/Windows/Fonts/arial.ttf'):
             pdfmetrics.registerFont(TTFont('Arial', 'C:/Windows/Fonts/arial.ttf'))
@@ -384,7 +356,7 @@ def export_resumes_pdf(request):
     p.setFont(font_name, 8)
     count = 0
     for resume in resumes:
-        if y_position < 50:  # Новая страница
+        if y_position < 50:
             p.showPage()
             y_position = height - 50
             # Повторяем заголовки на новой странице
@@ -395,9 +367,7 @@ def export_resumes_pdf(request):
             y_position -= row_height
             p.setFont(font_name, 8)
         
-        # Подготавливаем данные
         if font_name == 'Helvetica':
-            # Транслитерация для случая без поддержки кириллицы
             candidate_name = transliterate_russian(resume.candidate.full_name)
             status_text = translate_status(resume.status)
         else:
@@ -413,12 +383,10 @@ def export_resumes_pdf(request):
             resume.uploaded_at.strftime('%d.%m.%Y')
         ]
         
-        # Рисуем строку данных
         for i, item in enumerate(data):
             try:
                 p.drawString(x_positions[i], y_position, str(item))
             except:
-                # Если символ не поддерживается, заменяем на ?
                 safe_item = ''.join(c if ord(c) < 256 else '?' for c in str(item))
                 p.drawString(x_positions[i], y_position, safe_item)
         
@@ -470,20 +438,8 @@ def translate_status(status):
     return status_dict.get(status, status)
 
 
-# resume/views.py (или где у вас находится функция resume_list)
-from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
-from django.shortcuts import render
-
-from core.utils import (can_export_data, can_manage_applications,
-                        can_view_sensitive_data)
-
-from .models import Candidate, Resume
-
-
 @login_required
 def resume_list(request):
-    # Базовый queryset
     queryset = Resume.objects.select_related('candidate').order_by('-uploaded_at')
     
     # Если пользователь - кандидат, показываем только его резюме
@@ -494,7 +450,6 @@ def resume_list(request):
         except Candidate.DoesNotExist:
             queryset = Resume.objects.none()
     
-    # Применяем фильтры из GET параметров
     status_filter = request.GET.get('status')
     if status_filter:
         queryset = queryset.filter(status=status_filter)

@@ -1,5 +1,3 @@
-# resume/forms.py
-# resume/forms.py
 from django import forms
 
 from .models import Resume
@@ -30,18 +28,14 @@ class ResumeUploadForm(forms.ModelForm):
     
     def clean_file(self):
         file = self.cleaned_data.get('file')
-        
         if file:
             # Проверка расширения
             allowed_extensions = ['.pdf', '.docx']
             file_extension = file.name.lower().split('.')[-1]
             if f'.{file_extension}' not in allowed_extensions:
                 raise forms.ValidationError('Разрешены только файлы PDF и DOCX')
-            
-            # Проверка размера (10MB)
             if file.size > 10 * 1024 * 1024:
                 raise forms.ValidationError('Размер файла не должен превышать 10MB')
-        
         return file
     
     def save(self, commit=True):

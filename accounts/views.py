@@ -2,14 +2,13 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-# Create your views here.
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 
 from .forms import (CandidateRegistrationForm, CustomLoginForm,
                     HRRegistrationForm, UserProfileForm)
-from .models import User, UserProfile  # Добавьте UserProfile здесь
+from .models import User, UserProfile
 
 
 class CustomLoginView(LoginView):

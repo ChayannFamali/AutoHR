@@ -28,10 +28,15 @@ from .utils import (can_export_data, can_manage_applications,
 @login_required
 @require_http_methods(["POST"])
 def add_note_to_application(request, application_id):
+    # Только HR и админы могут добавлять заметки
+    if not can_manage_applications(request.user):
+        return JsonResponse({
+            'success': False,
+            'message': 'У вас нет прав для добавления заметок'
+        })
     try:
         application = get_object_or_404(Application, id=application_id)
         
-        # Получаем данные из POST запроса
         data = json.loads(request.body)
         note_text = data.get('note', '').strip()
         
@@ -64,34 +69,8 @@ def add_note_to_application(request, application_id):
             'success': False,
             'message': f'Ошибка при добавлении заметки: {str(e)}'
         })
-
-
-@login_required
-def add_note_to_application(request, application_id):
-    # Только HR и админы могут добавлять заметки
-    if not can_manage_applications(request.user):
-        return JsonResponse({
-            'success': False,
-            'message': 'У вас нет прав для добавления заметок'
-        })
-    
-# # core/views.py
-# class ApplicationListView(LoginRequiredMixin, ListView):
-#     model = Application
-#     template_name = 'core/application_list.html'
-#     context_object_name = 'applications'
-#     paginate_by = 20
-    
-#     def get_queryset(self):
-#         queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
         
-#         # Если пользователь - кандидат, показываем только его заявки
-#         if self.request.user.is_candidate():
-#             queryset = queryset.filter(candidate=self.request.user)  # candidate - это User
         
-#         return queryset
-
-
 @hr_required
 @require_POST
 def update_application_status(request, application_id):
@@ -139,20 +118,17 @@ def schedule_interview_for_application(request, application_id):
     try:
         application = get_object_or_404(Application, id=application_id)
         
-        # Получаем данные из формы
         date_str = request.POST.get('date')
         time_str = request.POST.get('time')
         format_type = request.POST.get('format')
         location = request.POST.get('location', '')
         
-        # Валидация
         if not all([date_str, time_str, format_type]):
             return JsonResponse({
                 'success': False,
                 'message': 'Заполните все обязательные поля (дата, время, формат)'
             })
         
-        # Парсим дату и время
         from datetime import datetime, timezone
         try:
             scheduled_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
@@ -170,7 +146,6 @@ def schedule_interview_for_application(request, application_id):
                 'message': 'Дата собеседования должна быть в будущем'
             })
         
-        # Создаем собеседование
         from calendar_app.models import Interview, InterviewType
 
         # Получаем или создаем дефолтный тип собеседования
@@ -190,7 +165,7 @@ def schedule_interview_for_application(request, application_id):
             application=application,
             candidate=application.candidate,
             interviewer=request.user,
-            interview_type=interview_type,  # Обязательно устанавливаем тип
+            interview_type=interview_type,
             scheduled_at=scheduled_datetime,
             format=format_type,
             location=location,
@@ -198,7 +173,6 @@ def schedule_interview_for_application(request, application_id):
             duration_minutes=interview_type.duration_minutes
         )
         
-        # Обновляем статус заявки
         application.status = 'approved'
         application.save()
         
@@ -227,7 +201,6 @@ def export_applications_excel(request):
         'AI Оценка', 'Статус', 'Дата подачи', 'Сопроводительное письмо'
     ]
     
-    # Записываем заголовки
     for col_num, header in enumerate(headers, 1):
         cell = worksheet.cell(row=1, column=col_num)
         cell.value = header
@@ -235,12 +208,10 @@ def export_applications_excel(request):
         cell.alignment = Alignment(horizontal='center')
         cell.fill = PatternFill(start_color='CCCCCC', end_color='CCCCCC', fill_type='solid')
     
-    # Получаем данные заявок
     applications = Application.objects.select_related(
         'candidate', 'job', 'job__company'
     ).order_by('-applied_at')
     
-    # Записываем данные
     for row_num, application in enumerate(applications, 2):
         worksheet.cell(row=row_num, column=1, value=application.id)
         worksheet.cell(row=row_num, column=2, value=application.candidate.full_name)
@@ -253,7 +224,6 @@ def export_applications_excel(request):
         worksheet.cell(row=row_num, column=9, value=application.applied_at.strftime('%d.%m.%Y %H:%M'))
         worksheet.cell(row=row_num, column=10, value=application.cover_letter[:100] + '...' if len(application.cover_letter) > 100 else application.cover_letter)
     
-    # Автоподбор ширины столбцов
     for column in worksheet.columns:
         max_length = 0
         column_letter = column[0].column_letter
@@ -274,6 +244,7 @@ def export_applications_excel(request):
     
     workbook.save(response)
     return response
+
 @hr_required
 def create_job(request):
     """Создание новой вакансии"""
@@ -292,11 +263,11 @@ def create_job(request):
         form = JobCreateForm()
     
     return render(request, 'core/create_job.html', {'form': form})
+
 def job_list(request):
     """Список всех активных вакансий с фильтрами"""
     jobs = Job.objects.filter(status='active').select_related('company').order_by('-created_at')
     
-    # Применяем фильтры
     search_query = request.GET.get('search')
     if search_query:
         jobs = jobs.filter(
@@ -327,6 +298,7 @@ def job_list(request):
     }
     
     return render(request, 'core/job_list.html', context)
+
 @login_required
 @require_http_methods(["POST"])
 def delete_job(request, job_id):
@@ -347,7 +319,7 @@ def delete_job(request, job_id):
             'message': f'Ошибка при удалении: {str(e)}'
         })
 
-@hr_required  
+@hr_required
 def job_list_hr(request):
     """Список вакансий для HR"""
     jobs = Job.objects.filter(created_by=request.user).order_by('-created_at')
@@ -372,7 +344,6 @@ class JobDetailView(DetailView):
     
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        # Увеличиваем счетчик просмотров при каждом обращении
         obj.views_count += 1
         obj.save(update_fields=['views_count'])
         return obj
@@ -384,9 +355,7 @@ def apply_for_job(request, job_id):
         form = ApplicationForm(request.POST)
         if form.is_valid():
             try:
-                # Создаем или получаем кандидата
                 if request.user.is_authenticated and request.user.is_candidate():
-                    # Для авторизованных пользователей-кандидатов
                     candidate, created = Candidate.objects.get_or_create(
                         user=request.user,
                         defaults={
@@ -396,7 +365,6 @@ def apply_for_job(request, job_id):
                             'phone': form.cleaned_data.get('phone', ''),
                         }
                     )
-                    # Обновляем данные кандидата, если они изменились
                     if not created:
                         candidate.first_name = form.cleaned_data['first_name']
                         candidate.last_name = form.cleaned_data['last_name']
@@ -404,7 +372,6 @@ def apply_for_job(request, job_id):
                         candidate.phone = form.cleaned_data.get('phone', '')
                         candidate.save()
                 else:
-                    # Для неавторизованных пользователей или не-кандидатов
                     candidate, created = Candidate.objects.get_or_create(
                         email=form.cleaned_data['email'],
                         defaults={
@@ -414,7 +381,6 @@ def apply_for_job(request, job_id):
                         }
                     )
                 
-                # Проверяем, не подавал ли уже заявку
                 existing_application = Application.objects.filter(
                     candidate=candidate,
                     job=job
@@ -424,7 +390,6 @@ def apply_for_job(request, job_id):
                     messages.warning(request, 'Вы уже подавали заявку на эту вакансию.')
                     return redirect('core:job_detail', pk=job.id)
                 
-                # Создаем заявку
                 application = Application.objects.create(
                     candidate=candidate,
                     job=job,
@@ -432,14 +397,12 @@ def apply_for_job(request, job_id):
                     status='pending'
                 )
                 
-                # Проверяем есть ли у кандидата обработанные резюме
                 existing_resumes = Resume.objects.filter(
                     candidate=candidate,
                     status='processed'
                 ).order_by('-uploaded_at')
 
                 if existing_resumes.exists():
-                    # Используем последнее резюме для AI-анализа
                     latest_resume = existing_resumes.first()
                     
                     try:
@@ -470,21 +433,18 @@ def apply_for_job(request, job_id):
                 else:
                     messages.success(request, 'Заявка отправлена! Загрузите резюме для AI-анализа.')
 
-                # Отправляем уведомления
                 try:
                     from notifications.services import NotificationService
 
                     # Уведомление кандидату
                     NotificationService.send_application_confirmation(application)
                     
-                    # Уведомление HR
                     hr_message = f'Новая заявка от {candidate.full_name} на вакансию "{job.title}"\n\n'
                     hr_message += f'Email кандидата: {candidate.email}\n'
                     hr_message += f'Телефон: {candidate.phone or "Не указан"}\n'
                     hr_message += f'Дата подачи: {application.applied_at.strftime("%d.%m.%Y %H:%M")}\n\n'
                     if application.cover_letter:
                         hr_message += f'Сопроводительное письмо:\n{application.cover_letter}'
-                    
                     NotificationService.send_hr_notification(
                         'Новая заявка',
                         hr_message,
@@ -513,7 +473,6 @@ class ApplicationListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = Application.objects.select_related('candidate', 'job', 'job__company').order_by('-applied_at')
         
-        # Если пользователь - кандидат, показываем только его заявки
         if self.request.user.is_candidate():
             try:
                 candidate = Candidate.objects.get(user=self.request.user)
@@ -526,15 +485,12 @@ class ApplicationListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Получаем базовый queryset для статистики
         base_queryset = self.get_queryset()
         
-        # Подсчитываем статистику
         total_applications = base_queryset.count()
         pending_applications = base_queryset.filter(status='pending').count()
         approved_applications = base_queryset.filter(status='approved').count()
         
-        # Добавляем права доступа и статистику в контекст
         context.update({
             'can_view_sensitive_data': can_view_sensitive_data(self.request.user),
             'can_manage_applications': can_manage_applications(self.request.user),
@@ -547,12 +503,10 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         
         return context
 
-
 @login_required
 def application_detail(request, application_id):
     application = get_object_or_404(Application, id=application_id)
     
-    # Проверяем права доступа
     if request.user.is_candidate():
         try:
             candidate = Candidate.objects.get(user=request.user)
@@ -585,4 +539,3 @@ class JobEditView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('core:job_list_hr')
-

@@ -26,7 +26,6 @@ class Resume(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, verbose_name="Кандидат")
     application = models.ForeignKey(Application, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Заявка")
     
-    # Файл резюме
     file = models.FileField(
         upload_to=resume_upload_path,
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'docx'])],
@@ -35,11 +34,9 @@ class Resume(models.Model):
     original_filename = models.CharField(max_length=255, verbose_name="Оригинальное имя файла")
     file_size = models.PositiveIntegerField(verbose_name="Размер файла (байты)")
     
-    # Извлеченная информация
     extracted_text = models.TextField(blank=True, verbose_name="Извлеченный текст")
     language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default='auto', verbose_name="Язык")
     
-    # Структурированная информация
     skills = models.JSONField(default=list, verbose_name="Навыки")
     experience_years = models.PositiveIntegerField(null=True, blank=True, verbose_name="Опыт (лет)")
     education = models.JSONField(default=list, verbose_name="Образование")
@@ -49,7 +46,6 @@ class Resume(models.Model):
     text_embedding = models.JSONField(null=True, blank=True, verbose_name="Text Embedding")
     skills_embedding = models.JSONField(null=True, blank=True, verbose_name="Skills Embedding")
     
-    # Метаданные
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='uploaded', verbose_name="Статус")
     processing_error = models.TextField(blank=True, verbose_name="Ошибка обработки")
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -64,7 +60,6 @@ class Resume(models.Model):
         return f"Резюме {self.candidate.full_name} - {self.original_filename}"
     
     def delete(self, *args, **kwargs):
-        # Удаляем файл при удалении записи
         if self.file:
             if os.path.isfile(self.file.path):
                 os.remove(self.file.path)
@@ -85,16 +80,13 @@ class Resume(models.Model):
 class ResumeAnalysis(models.Model):
     resume = models.OneToOneField(Resume, on_delete=models.CASCADE, verbose_name="Резюме")
     
-    # Анализ контента
     key_skills = models.JSONField(default=list, verbose_name="Ключевые навыки")
     experience_summary = models.TextField(blank=True, verbose_name="Краткое описание опыта")
     education_level = models.CharField(max_length=100, blank=True, verbose_name="Уровень образования")
     
-    # Качественные метрики
     completeness_score = models.FloatField(default=0.0, verbose_name="Полнота резюме")
     relevance_keywords = models.JSONField(default=list, verbose_name="Релевантные ключевые слова")
     
-    # Временные метки
     analyzed_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

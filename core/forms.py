@@ -65,7 +65,6 @@ class JobCreateForm(forms.ModelForm):
     def save(self, commit=True):
         job = super().save(commit=False)
         
-        # Если введено название новой компании
         if self.cleaned_data.get('company_name') and not self.cleaned_data.get('company'):
             company, created = Company.objects.get_or_create(
                 name=self.cleaned_data['company_name']
@@ -75,7 +74,7 @@ class JobCreateForm(forms.ModelForm):
         if commit:
             job.save()
         return job
-# core/forms.py
+    
 class JobForm(forms.ModelForm):
     class Meta:
         model = Job
