@@ -109,10 +109,3 @@ AutoHR/
 **ИИ-анализ соответствия кандидатов**
 **Планирование и проведение собеседований**
 **Аналитика и отчеты**
-
-## 📊 Статистика
-
-![GitHub stars](https://img.shields.io/github/stars/ChayannFamali/AutoHR?style=social)
-![GitHub forks](https://img.shields.io/github/forks/ChayannFamali/AutoHR?style=social)
-![GitHub issues](https://img.shields.io/github/issues/ChayannFamali/AutoHR)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/ChayannFamali/AutoHR)
