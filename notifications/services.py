@@ -78,3 +78,33 @@ class NotificationService:
         except Exception as e:
             logger.error(f'Failed to send HR notification: {str(e)}')
             return False
+
+    @staticmethod
+    def send_interview_reminder(interview):
+        """Напоминание кандидату о предстоящем собеседовании"""
+        try:
+            send_mail(
+                subject=f'Напоминание о собеседовании - {interview.scheduled_at.strftime("%d.%m.%Y в %H:%M")}',
+                message=(
+                    f'Здравствуйте, {interview.candidate.first_name}!\n\n'
+                    f'Напоминаем вам о предстоящем собеседовании:\n\n'
+                    f'📅 Дата: {interview.scheduled_at.strftime("%d.%m.%Y")}\n'
+                    f'⏰ Время: {interview.scheduled_at.strftime("%H:%M")}\n'
+                    f'💼 Вакансия: {interview.application.job.title}\n'
+                    f'👤 Интервьюер: {interview.interviewer.get_full_name()}\n'
+                    f'📍 Формат: {interview.get_format_display()}\n'
+                    + (f'🔗 Место/Ссылка: {interview.location}\n' if interview.location else '') +
+                    f'\nЖдём вас!\n\n'
+                    f'С уважением,\nКоманда AutoHR'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[interview.candidate.email],
+                fail_silently=True,
+            )
+
+            logger.info(f'Interview reminder sent to {interview.candidate.email}')
+            return True
+
+        except Exception as e:
+            logger.error(f'Failed to send interview reminder: {str(e)}')
+            return False

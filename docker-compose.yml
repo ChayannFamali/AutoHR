@@ -1,11 +1,73 @@
 version: '3.8'
+
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: autohr
+      POSTGRES_USER: autohr
+      POSTGRES_PASSWORD: autohr_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autohr -d autohr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build: .
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Если задан DATABASE_URL — используется Postgres,
+      # иначе settings.py падает обратно на SQLite.
+      DATABASE_URL: postgresql://autohr:autohr_dev_password@db:5432/autohr
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
       - ./media:/app/media
-      - ./db.sqlite3:/app/db.sqlite3
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_worker:
+    build: .
+    command: celery -A autohr worker -l info
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://autohr:autohr_dev_password@db:5432/autohr
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

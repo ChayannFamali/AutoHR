@@ -3,489 +3,169 @@
 
 {% block title %}Собеседование с {{ interview.candidate.full_name }} - AutoHR{% endblock %}
 
-{% block extra_css %}
-<style>
-.avatar-circle {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-.ai-score-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    /* Исправлено: умножаем на 100 для конвертации в проценты */
-    background: conic-gradient(
-        #28a745 0deg, 
-        #28a745 calc(var(--score) * 100 * 3.6deg), 
-        #e9ecef calc(var(--score) * 100 * 3.6deg), 
-        #e9ecef 360deg
-    );
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    position: relative;
-}
-
-.ai-score-circle::before {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: white;
-    border-radius: 50%;
-    z-index: 1;
-}
-
-.score-value {
-    font-size: 14px;
-    font-weight: bold;
-    color: #28a745;
-    z-index: 2;
-    position: relative;
-}
-
-.ai-score-circle small {
-    z-index: 2;
-    position: relative;
-    font-size: 10px;
-}
-
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -25px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid white;
-}
-
-.rating-input {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-}
-
-.rating-input input {
-    display: none;
-}
-
-.rating-input label {
-    color: #ddd;
-    font-size: 24px;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.rating-input input:checked ~ label,
-.rating-input label:hover,
-.rating-input label:hover ~ label {
-    color: #ffc107;
-}
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container my-4">
-    
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="{% url 'calendar_app:interview_list' %}">Собеседования</a>
             </li>
-            <li class="breadcrumb-item active">
-                {{ interview.candidate.full_name }} - {{ interview.scheduled_at|date:"d.m.Y H:i" }}
-            </li>
+            <li class="breadcrumb-item active">С {{ interview.candidate.full_name }}</li>
         </ol>
     </nav>
 
     <div class="row">
-        
         <div class="col-lg-8">
-            
             <div class="card mb-4">
                 <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h3 class="mb-1">
-                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                                Собеседование
-                            </h3>
-                            <p class="text-muted mb-0">
-                                {{ interview.scheduled_at|date:"d F Y г." }} в {{ interview.scheduled_at|time:"H:i" }}
-                            </p>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge fs-6
-                                {% if interview.status == 'scheduled' %}bg-warning text-dark
-                                {% elif interview.status == 'confirmed' %}bg-success
-                                {% elif interview.status == 'completed' %}bg-info
-                                {% elif interview.status == 'cancelled' %}bg-danger
-                                {% else %}bg-secondary{% endif %}">
-                                {{ interview.get_status_display }}
-                            </span>
-                        </div>
-                    </div>
+                    <h3 class="mb-1">
+                        <i class="fas fa-calendar-check me-2 text-primary"></i>
+                        Собеседование #{{ interview.id }}
+                    </h3>
                 </div>
                 <div class="card-body">
-                    
-                    <div class="btn-group mb-3" role="group">
-                        {% if interview.status == 'scheduled' %}
-                            <button type="button" class="btn btn-success" onclick="updateInterviewStatus({{ interview.id }}, 'confirmed')">
-                                <i class="fas fa-check me-1"></i>
-                                Подтвердить
-                            </button>
-                            <button type="button" class="btn btn-warning" onclick="openRescheduleModal({{ interview.id }})">
-                                <i class="fas fa-edit me-1"></i>
-                                Перенести
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="updateInterviewStatus({{ interview.id }}, 'cancelled')">
-                                <i class="fas fa-times me-1"></i>
-                                Отменить
-                            </button>
-                        {% elif interview.status == 'confirmed' %}
-                            <button type="button" class="btn btn-primary" onclick="startInterview({{ interview.id }})">
-                                <i class="fas fa-play me-1"></i>
-                                Начать собеседование
-                            </button>
-                            <button type="button" class="btn btn-warning" onclick="openRescheduleModal({{ interview.id }})">
-                                <i class="fas fa-edit me-1"></i>
-                                Перенести
-                            </button>
-                        {% elif interview.status == 'completed' %}
-                            {% if can_manage_interviews %}
-                                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#feedbackModal">
-                                    <i class="fas fa-edit me-1"></i>
-                                    Редактировать отзыв
-                                </button>
-                            {% endif %}
-                        {% endif %}
-                        <button type="button" class="btn btn-outline-secondary" onclick="sendReminder({{ interview.id }})">
-                            <i class="fas fa-envelope me-1"></i>
-                            Отправить напоминание
-                        </button>
-                    </div>
-
-                    
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-md-6">
-                            <h6>Детали собеседования</h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td class="text-muted">Тип:</td>
-                                    <td>{{ interview.interview_type.name }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Формат:</td>
-                                    <td>
-                                        {% if interview.format == 'online' %}
-                                            <i class="fas fa-video me-1 text-primary"></i>Онлайн
-                                        {% elif interview.format == 'offline' %}
-                                            <i class="fas fa-building me-1 text-info"></i>Офлайн
-                                        {% elif interview.format == 'phone' %}
-                                            <i class="fas fa-phone me-1 text-success"></i>Телефон
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Длительность:</td>
-                                    <td>{{ interview.duration_minutes }} минут</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Интервьюер:</td>
-                                    <td>{{ interview.interviewer.get_full_name|default:interview.interviewer.username }}</td>
-                                </tr>
-                            </table>
+                            <h6 class="text-muted">Кандидат</h6>
+                            {% include 'partials/candidate_avatar.html' with candidate=interview.candidate size="lg" with_email=True %}
                         </div>
                         <div class="col-md-6">
-                            <h6>Место проведения</h6>
-                            {% if interview.location and interview.location|length > 0 %}
-                                <div class="alert alert-info location-container">
-                                    <div class="d-flex align-items-start">
-                                        <i class="fas fa-{% if interview.format == 'online' %}video{% elif interview.format == 'phone' %}phone{% else %}map-marker-alt{% endif %} me-2 mt-1"></i>
-                                        <div class="flex-grow-1">
-                                            <div class="location-text">{{ interview.location }}</div>
-                                            
-                                            {% if interview.format == 'online' %}
-                                                
-                                                {% if 'http' in interview.location|lower %}
-                                                    <div class="mt-2">
-                                                        <a href="{{ interview.location }}" 
-                                                           target="_blank" 
-                                                           class="btn btn-sm btn-primary me-2" 
-                                                           rel="noopener noreferrer">
-                                                            <i class="fas fa-external-link-alt me-1"></i>
-                                                            Присоединиться
-                                                        </a>
-                                                        <button type="button" 
-                                                                class="btn btn-sm btn-outline-secondary" 
-                                                                onclick="copyToClipboard('{{ interview.location|escapejs }}')">
-                                                            <i class="fas fa-copy me-1"></i>
-                                                            Копировать
-                                                        </button>
-                                                    </div>
-                                                {% else %}
-                                                    <small class="text-muted d-block mt-1">
-                                                        <i class="fas fa-info-circle me-1"></i>
-                                                        Информация для онлайн встречи
-                                                    </small>
-                                                {% endif %}
-                                            {% elif interview.format == 'phone' %}
-                                                <small class="text-muted d-block mt-1">
-                                                    <i class="fas fa-info-circle me-1"></i>
-                                                    Номер для телефонного звонка
-                                                </small>
-                                            {% else %}
-                                                <small class="text-muted d-block mt-1">
-                                                    <i class="fas fa-info-circle me-1"></i>
-                                                    Адрес для встречи
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="alert alert-warning location-container">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        <div>
-                                            <div class="text-muted">
-                                                {% if interview.format == 'online' %}
-                                                    Ссылка на онлайн встречу не указана
-                                                {% elif interview.format == 'phone' %}
-                                                    Номер телефона не указан
-                                                {% elif interview.format == 'offline' %}
-                                                    Адрес встречи не указан
-                                                {% else %}
-                                                    Место проведения не указано
-                                                {% endif %}
-                                            </div>
-                                            <small class="text-muted">
-                                                Обратитесь к организатору для получения информации
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user me-2"></i>
-                        Информация о кандидате
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar-circle bg-primary text-white me-3" style="width: 60px; height: 60px; font-size: 24px;">
-                                    {{ interview.candidate.first_name.0 }}{{ interview.candidate.last_name.0 }}
-                                </div>
-                                <div>
-                                    <h4 class="mb-1">{{ interview.candidate.full_name }}</h4>
-                                    <p class="text-muted mb-0">{{ interview.candidate.email }}</p>
-                                    {% if interview.candidate.phone %}
-                                        <p class="text-muted mb-0">{{ interview.candidate.phone }}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Контактная информация</h6>
-                            <div class="mb-2">
-                                <i class="fas fa-envelope me-2 text-muted"></i>
-                                <a href="mailto:{{ interview.candidate.email }}">{{ interview.candidate.email }}</a>
-                            </div>
-                            {% if interview.candidate.phone %}
-                                <div class="mb-2">
-                                    <i class="fas fa-phone me-2 text-muted"></i>
-                                    <a href="tel:{{ interview.candidate.phone }}">{{ interview.candidate.phone }}</a>
-                                </div>
-                            {% endif %}
-                            {% if interview.candidate.linkedin_url %}
-                                <div class="mb-2">
-                                    <i class="fab fa-linkedin me-2 text-muted"></i>
-                                    <a href="{{ interview.candidate.linkedin_url }}" target="_blank">LinkedIn</a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-briefcase me-2"></i>
-                        Вакансия
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5>
-                                <a href="{% url 'core:job_detail' interview.application.job.pk %}" class="text-decoration-none">
-                                    {{ interview.application.job.title }}
-                                </a>
-                            </h5>
+                            <h6 class="text-muted">Вакансия</h6>
+                            <p class="mb-1"><strong>{{ interview.application.job.title }}</strong></p>
                             <p class="text-muted">{{ interview.application.job.company.name }}</p>
-                            <p>{{ interview.application.job.description|truncatewords:30 }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            {% if interview.application.ai_score %}
-                                <div class="text-center">
-                                    
-                                    <div class="ai-score-circle" 
-                                         data-score="{{ interview.application.ai_score }}" 
-                                         style="--score: {{ interview.application.ai_score }}">
-                                        <div class="score-value" id="score-text"></div>
-                                        <small class="text-muted">AI Score</small>
-                                    </div>
-                                </div>
-                            {% endif %}
                         </div>
                     </div>
-                </div>
-            </div>
 
-            
-            {% if interview.preparation_notes %}
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-clipboard-list me-2"></i>
-                            Заметки для подготовки
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        {{ interview.preparation_notes|linebreaks }}
-                    </div>
-                </div>
-            {% endif %}
+                    <table class="table table-sm">
+                        <tr>
+                            <td class="text-muted" width="30%">Дата и время:</td>
+                            <td><strong>{{ interview.scheduled_at|date:"d.m.Y H:i" }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Длительность:</td>
+                            <td>{{ interview.duration_minutes }} минут</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Формат:</td>
+                            <td>{{ interview.get_format_display }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Тип:</td>
+                            <td>{{ interview.interview_type.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Интервьюер:</td>
+                            <td>{{ interview.interviewer.get_full_name|default:interview.interviewer.username }}</td>
+                        </tr>
+                        {% if interview.location %}
+                        <tr>
+                            <td class="text-muted">Место/ссылка:</td>
+                            <td>{{ interview.location }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Статус:</td>
+                            <td>
+                                <span class="badge
+                                    {% if interview.status == 'scheduled' %}bg-warning text-dark
+                                    {% elif interview.status == 'confirmed' %}bg-success
+                                    {% elif interview.status == 'completed' %}bg-info
+                                    {% elif interview.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ interview.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
 
-            
-            {% if interview.status == 'completed' and interview.feedback %}
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-comments me-2"></i>
-                            Обратная связь
-                        </h5>
+                    {% if interview.application.ai_score %}
+                    <div class="text-center my-4">
+                        <div class="ai-score-circle" data-score="{{ interview.application.ai_score }}"
+                             style="--score: {{ interview.application.ai_score }};">
+                            <div class="score-value" id="score-text">—</div>
+                            <small>AI match</small>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    {% endif %}
+
+                    {% if interview.feedback %}
+                    <hr>
+                    <h6 class="text-muted">Отзыв интервьюера</h6>
+                    <div class="bg-light p-3 rounded">
                         {% if interview.rating %}
-                            <div class="mb-3">
-                                <strong>Оценка: </strong>
+                            <div class="mb-2">
                                 {% for i in "12345" %}
                                     <i class="fas fa-star {% if forloop.counter <= interview.rating %}text-warning{% else %}text-muted{% endif %}"></i>
                                 {% endfor %}
-                                <span class="ms-2">({{ interview.rating }}/5)</span>
                             </div>
                         {% endif %}
-                        <div>{{ interview.feedback|linebreaks }}</div>
+                        <p class="mb-0">{{ interview.feedback|linebreaks }}</p>
                     </div>
-                </div>
-            {% endif %}
-        </div>
+                    {% endif %}
 
-        
-        <div class="col-lg-4">
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">Быстрые действия</h6>
+                    {% if interview.notes %}
+                    <hr>
+                    <h6 class="text-muted">Заметки</h6>
+                    <div class="bg-light p-3 rounded">
+                        <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ interview.notes }}</pre>
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="mailto:{{ interview.candidate.email }}?subject=Собеседование {{ interview.scheduled_at|date:'d.m.Y H:i' }}" 
-                           class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-envelope me-1"></i>
-                            Написать email
-                        </a>
-                        {% if interview.candidate.phone %}
-                            <a href="tel:{{ interview.candidate.phone }}" class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-phone me-1"></i>
-                                Позвонить
-                            </a>
+                <div class="card-footer">
+                    <div class="btn-group" role="group">
+                        {% if interview.status == 'scheduled' %}
+                            <button type="button" class="btn btn-outline-success"
+                                    hx-post="{% url 'core:update_interview_status_htmx' interview.id %}"
+                                    hx-vals='{"status": "confirmed"}'
+                                    hx-target="#interview-detail-card"
+                                    hx-swap="outerHTML"
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                                <i class="fas fa-check me-1"></i>Подтвердить
+                            </button>
+                            <button type="button" class="btn btn-outline-warning"
+                                    hx-post="{% url 'core:update_interview_status_htmx' interview.id %}"
+                                    hx-vals='{"status": "cancelled"}'
+                                    hx-target="#interview-detail-card"
+                                    hx-swap="outerHTML"
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                                <i class="fas fa-times me-1"></i>Отменить
+                            </button>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-info btn-sm" onclick="addToCalendar()">
-                            <i class="fas fa-calendar-plus me-1"></i>
-                            Добавить в календарь
+                        <button type="button" class="btn btn-outline-info"
+                                data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                            <i class="fas fa-comment me-1"></i>Оставить отзыв
                         </button>
-                        <a href="{% url 'core:application_list' %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-file-alt me-1"></i>
-                            Посмотреть заявку
-                        </a>
+                        <button type="button" class="btn btn-outline-secondary"
+                                hx-post="{% url 'calendar_app:send_reminder' interview.id %}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                            <i class="fas fa-bell me-1"></i>Напоминание
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            
+        <div class="col-lg-4">
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0">История</h6>
+                    <h6 class="mb-0">Действия</h6>
                 </div>
                 <div class="card-body">
-                    <div class="timeline">
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-primary"></div>
-                            <div class="timeline-content">
-                                <div class="fw-bold">Собеседование запланировано</div>
-                                <small class="text-muted">{{ interview.created_at|date:"d.m.Y H:i" }}</small>
-                            </div>
-                        </div>
-                        {% if interview.status == 'confirmed' %}
-                            <div class="timeline-item">
-                                <div class="timeline-marker bg-success"></div>
-                                <div class="timeline-content">
-                                    <div class="fw-bold">Собеседование подтверждено</div>
-                                    <small class="text-muted">{{ interview.updated_at|date:"d.m.Y H:i" }}</small>
-                                </div>
-                            </div>
-                        {% endif %}
-                        {% if interview.status == 'completed' %}
-                            <div class="timeline-item">
-                                <div class="timeline-marker bg-info"></div>
-                                <div class="timeline-content">
-                                    <div class="fw-bold">Собеседование завершено</div>
-                                    <small class="text-muted">{{ interview.completed_at|date:"d.m.Y H:i" }}</small>
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
+                    <button type="button" class="btn btn-outline-primary w-100 mb-2"
+                            data-calendar-trigger
+                            data-start="{{ interview.scheduled_at|date:'c' }}"
+                            data-duration="{{ interview.duration_minutes }}"
+                            data-title="Собеседование с {{ interview.candidate.full_name|escapejs }}"
+                            data-details="Собеседование на позицию {{ interview.application.job.title|escapejs }}"
+                            onclick="addToCalendar()">
+                        <i class="fas fa-calendar-plus me-1"></i>Добавить в Google Calendar
+                    </button>
+                    {% if interview.location %}
+                        <button type="button" class="btn btn-outline-secondary w-100 mb-2"
+                                onclick="copyToClipboard('{{ interview.location|escapejs }}')">
+                            <i class="fas fa-copy me-1"></i>Скопировать ссылку
+                        </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -494,361 +174,52 @@
 
 
 <div class="modal fade" id="feedbackModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-comments me-2"></i>
-                    Обратная связь по собеседованию
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="feedbackForm">
+            <form hx-post="{% url 'core:save_interview_feedback_htmx' interview.id %}"
+                  hx-target="#interview-detail-card"
+                  hx-swap="outerHTML"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-on::after-request="if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide()">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-comment me-2"></i>Отзыв о собеседовании
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Оценка кандидата</label>
-                        <div class="rating-input">
+                        <label class="form-label">Оценка</label>
+                        <div>
                             {% for i in "12345" %}
-                                <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}" {% if interview.rating == forloop.counter %}checked{% endif %}>
-                                <label for="star{{ forloop.counter }}" class="fas fa-star"></label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="rating"
+                                           id="rating{{ i }}" value="{{ forloop.counter }}">
+                                    <label class="form-check-label" for="rating{{ i }}">
+                                        {% for s in "12345" %}
+                                            <i class="fas fa-star {% if forloop.counter <= forloop.parentloop.counter %}text-warning{% else %}text-muted{% endif %}"></i>
+                                        {% endfor %}
+                                    </label>
+                                </div>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Обратная связь</label>
-                        <textarea id="feedback" class="form-control" rows="5" placeholder="Детальная обратная связь по результатам собеседования">{{ interview.feedback }}</textarea>
+                        <label class="form-label">Комментарий</label>
+                        <textarea id="feedback" name="feedback" class="form-control" rows="5"
+                                  placeholder="Ваши впечатления, сильные стороны кандидата, рекомендации"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Рекомендация</label>
-                        <select id="recommendation" class="form-select">
-                            <option value="">Выберите рекомендацию</option>
-                            <option value="hire" {% if interview.recommendation == 'hire' %}selected{% endif %}>Рекомендую к найму</option>
-                            <option value="consider" {% if interview.recommendation == 'consider' %}selected{% endif %}>Рассмотреть</option>
-                            <option value="reject" {% if interview.recommendation == 'reject' %}selected{% endif %}>Не рекомендую</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="saveFeedback({{ interview.id }})">
-                    <i class="fas fa-save me-1"></i>
-                    Сохранить отзыв
-                </button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Сохранить
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-
-<div class="modal fade" id="rescheduleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Перенос собеседования</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="rescheduleForm">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Новая дата</label>
-                            <input type="date" name="date" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Новое время</label>
-                            <input type="time" name="time" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Причина переноса</label>
-                        <textarea name="reason" class="form-control" rows="3"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-warning" onclick="submitReschedule()">Перенести</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Глобальная переменная для ID собеседования
-const interviewId = {{ interview.id }};
-
-// Инициализация AI Score при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    // Исправляем отображение AI Score
-    const scoreCircle = document.querySelector('.ai-score-circle');
-    if (scoreCircle) {
-        const rawScore = parseFloat(scoreCircle.dataset.score);
-        const percentage = (rawScore * 100).toFixed(1); // Конвертируем в проценты
-        
-        // Обновляем текст
-        const scoreText = document.getElementById('score-text');
-        if (scoreText) {
-            scoreText.textContent = percentage + '%';
-        }
-        
-        // Обновляем CSS переменную для правильного отображения круга
-        scoreCircle.style.setProperty('--score', rawScore);
-    }
-
-    // Дополнительная обработка кнопок
-    const buttons = document.querySelectorAll('button, .btn');
-    
-    buttons.forEach(btn => {
-        const btnText = btn.textContent.trim();
-        
-        if (btnText.includes('Отправить напоминание')) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                sendReminder(interviewId);
-            });
-        }
-    });
-});
-
-// Функция для получения CSRF токена
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Функция показа уведомлений
-function showNotification(message, type = 'info') {
-    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
-             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', alertHtml);
-    
-    setTimeout(() => {
-        const alert = document.querySelector('.alert:last-child');
-        if (alert) alert.remove();
-    }, 3000);
-}
-
-// Обновление статуса собеседования
-function updateInterviewStatus(interviewId, status) {
-    const statusNames = {
-        'confirmed': 'подтвердить',
-        'cancelled': 'отменить',
-        'completed': 'завершить'
-    };
-    
-    if (confirm(`Вы уверены, что хотите ${statusNames[status]} это собеседование?`)) {
-        fetch(`/calendar/interviews/${interviewId}/update-status/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ 'status': status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification(data.message, 'success');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Произошла ошибка при обновлении статуса', 'error');
-        });
-    }
-}
-
-// Начать собеседование
-function startInterview(interviewId) {
-    if (confirm('Начать собеседование? Статус изменится на "Завершено" после окончания.')) {
-        updateInterviewStatus(interviewId, 'completed');
-    }
-}
-
-// Открыть модальное окно переноса
-function openRescheduleModal(interviewId) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    document.querySelector('#rescheduleModal input[name="date"]').min = tomorrow.toISOString().split('T')[0];
-    
-    const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
-    modal.show();
-}
-
-// Отправить форму переноса
-function submitReschedule() {
-    const form = document.getElementById('rescheduleForm');
-    const formData = new FormData(form);
-    
-    fetch(`/calendar/interviews/${interviewId}/reschedule/`, {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-CSRFToken': getCookie('csrftoken') }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка', 'error');
-    });
-}
-
-// Сохранить обратную связь
-function saveFeedback(interviewId) {
-    const feedback = document.querySelector('#feedback').value;
-    const rating = document.querySelector('input[name="rating"]:checked')?.value;
-    const recommendation = document.querySelector('#recommendation').value;
-    
-    fetch(`/calendar/interviews/${interviewId}/feedback/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            'feedback': feedback,
-            'rating': rating,
-            'recommendation': recommendation
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка при сохранении отзыва', 'error');
-    });
-}
-
-// Отправить напоминание (улучшенная версия)
-function sendReminder(interviewId) {
-    if (confirm('Отправить напоминание кандидату на email?')) {
-        // Показываем индикатор загрузки
-        const reminderBtn = document.querySelector('button[onclick*="sendReminder"]');
-        const originalText = reminderBtn.innerHTML;
-        reminderBtn.disabled = true;
-        reminderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Отправка...';
-        
-        fetch(`/calendar/interviews/${interviewId}/send-reminder/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification(data.message, 'success');
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Произошла ошибка при отправке напоминания', 'error');
-        })
-        .finally(() => {
-            // Восстанавливаем кнопку
-            reminderBtn.disabled = false;
-            reminderBtn.innerHTML = originalText;
-        });
-    }
-}
-
-// Добавить в календарь
-function addToCalendar() {
-    const startDate = new Date('{{ interview.scheduled_at|date:"c" }}');
-    const endDate = new Date(startDate.getTime() + {{ interview.duration_minutes }} * 60000);
-    
-    const event = {
-        title: 'Собеседование с {{ interview.candidate.full_name|escapejs }}',
-        start: startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
-        end: endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
-        description: 'Собеседование на позицию {{ interview.application.job.title|escapejs }}'
-    };
-    
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${event.start}/${event.end}&details=${encodeURIComponent(event.description)}`;
-    window.open(calendarUrl, '_blank');
-}
-
-// Функция копирования в буфер обмена
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(function() {
-            showNotification('Ссылка скопирована в буфер обмена', 'success');
-        }).catch(function(err) {
-            console.error('Ошибка копирования: ', err);
-            fallbackCopyTextToClipboard(text);
-        });
-    } else {
-        fallbackCopyTextToClipboard(text);
-    }
-}
-
-function fallbackCopyTextToClipboard(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('Ссылка скопирована в буфер обмена', 'success');
-        } else {
-            showNotification('Не удалось скопировать ссылку', 'error');
-        }
-    } catch (err) {
-        console.error('Fallback copy failed: ', err);
-        showNotification('Не удалось скопировать ссылку', 'error');
-    }
-    
-    document.body.removeChild(textArea);
-}
-</script>
+<script src="{% static 'vendor/js/pages/interview_detail.js' %}"></script>
 {% endblock %}

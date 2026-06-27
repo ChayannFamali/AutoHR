@@ -1,0 +1,19 @@
+{# Кнопка «В избранное» / «В избранном» — HTMX-фрагмент. #}
+{# Используется из job_list.html и job_detail.html через hx-post + hx-swap=outerHTML. #}
+{% if is_saved %}
+    <button class="btn btn-warning btn-sm"
+            hx-post="{% url 'core:toggle_save_job' job.id %}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            title="Убрать из избранного">
+        <i class="fas fa-bookmark me-1"></i> В избранном
+    </button>
+{% else %}
+    <button class="btn btn-outline-warning btn-sm"
+            hx-post="{% url 'core:toggle_save_job' job.id %}"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            title="Добавить в избранное">
+        <i class="far fa-bookmark me-1"></i> В избранное
+    </button>
+{% endif %}

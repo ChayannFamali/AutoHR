@@ -1,23 +1,48 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block title %}Вход в систему - AutoHR{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <img src="{% static 'images/autoHR.png' %}" alt="AutoHR" height="60" class="mb-3">
-                        <h3>Вход в систему</h3>
-                        <p class="text-muted">Введите ваши данные для входа</p>
+<div class="container">
+    <div class="auth-split">
+        <div class="row w-100 g-4 align-items-stretch">
+            <!-- Hero side (left) -->
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="auth-split-hero">
+                    <div class="brand-logo">
+                        <i class="fas fa-robot me-2"></i>AutoHR
                     </div>
+                    <h1>Найди работу<br>мечты с AI</h1>
+                    <p class="lead-text mt-3">
+                        Современная платформа рекрутинга с искусственным интеллектом.
+                        Автоподбор вакансий, AI-оценка резюме, быстрые собеседования.
+                    </p>
+                    <div class="hero-features">
+                        <div class="hero-feature">
+                            <i class="fas fa-check"></i>
+                            <span>AI-matching по навыкам и опыту</span>
+                        </div>
+                        <div class="hero-feature">
+                            <i class="fas fa-check"></i>
+                            <span>500+ проверенных компаний</span>
+                        </div>
+                        <div class="hero-feature">
+                            <i class="fas fa-check"></i>
+                            <span>Прозрачный процесс найма</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form side (right) -->
+            <div class="col-md-6 d-flex align-items-center">
+                <div class="auth-form-wrapper w-100">
+                    <h2 class="mb-1">С возвращением!</h2>
+                    <p class="text-secondary mb-4">Войдите в свой аккаунт, чтобы продолжить</p>
 
                     <form method="post">
                         {% csrf_token %}
-                        
+
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">
                                 {{ form.non_field_errors }}
@@ -30,7 +55,7 @@
                             </label>
                             {{ form.username }}
                             {% if form.username.errors %}
-                                <div class="text-danger small">{{ form.username.errors.0 }}</div>
+                                <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
                             {% endif %}
                         </div>
 
@@ -40,7 +65,7 @@
                             </label>
                             {{ form.password }}
                             {% if form.password.errors %}
-                                <div class="text-danger small">{{ form.password.errors.0 }}</div>
+                                <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
                             {% endif %}
                         </div>
 
@@ -61,13 +86,12 @@
 
                     <hr class="my-4">
 
-                    <div class="text-center">
-                        <p class="mb-2">Нет аккаунта?</p>
-                        <a href="{% url 'accounts:register_choice' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-user-plus me-2"></i>
-                            Регистрация
+                    <p class="text-center mb-0">
+                        Нет аккаунта?
+                        <a href="{% url 'accounts:register_choice' %}" class="fw-medium text-decoration-none">
+                            Зарегистрироваться
                         </a>
-                    </div>
+                    </p>
                 </div>
             </div>
         </div>

@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static core_extras %}
 
 {% block title %}{{ job.title }} - {{ job.company.name }} - AutoHR{% endblock %}
 
 {% block content %}
 <div class="container my-4">
-    
+
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -16,7 +16,7 @@
     </nav>
 
     <div class="row">
-        
+
         <div class="col-lg-8">
             <div class="card mb-4">
                 <div class="card-header">
@@ -36,7 +36,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    
+
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="d-flex align-items-center mb-2">
@@ -78,7 +78,7 @@
                         </div>
                     </div>
 
-                    
+
                     <div class="mb-4">
                         <h5>Описание вакансии</h5>
                         <div class="job-description">
@@ -86,7 +86,7 @@
                         </div>
                     </div>
 
-                    
+
                     <div class="mb-4">
                         <h5>Требования</h5>
                         <div class="job-requirements">
@@ -96,7 +96,7 @@
                 </div>
             </div>
 
-            
+
             {% if job.company.description %}
                 <div class="card">
                     <div class="card-header">
@@ -120,23 +120,30 @@
             {% endif %}
         </div>
 
-        
+
         <div class="col-lg-4">
-            
+
             <div class="card mb-4">
                 <div class="card-body text-center">
                     <h5 class="card-title">Заинтересованы в вакансии?</h5>
                     <p class="card-text text-muted">
                         Подайте заявку прямо сейчас и наш ИИ проанализирует ваше соответствие требованиям
                     </p>
-                    <a href="{% url 'core:apply_job' job.id %}" class="btn btn-primary btn-lg w-100">
+                    <a href="{% url 'core:apply_job' job.id %}" class="btn btn-primary btn-lg w-100 mb-2">
                         <i class="fas fa-paper-plane me-2"></i>
                         Откликнуться
                     </a>
+                    {% if user.is_authenticated %}
+                        {% show_save_button job %}
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-outline-warning btn-sm">
+                            <i class="far fa-bookmark me-1"></i>В избранное
+                        </a>
+                    {% endif %}
                 </div>
             </div>
 
-            
+
             <div class="card mb-4">
                 <div class="card-header">
                     <h6 class="mb-0">Быстрая информация</h6>
@@ -161,28 +168,47 @@
                 </div>
             </div>
 
-            
+
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0">Похожие вакансии</h6>
+                    <h6 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>Похожие вакансии
+                    </h6>
                 </div>
                 <div class="card-body">
-                    
+
                     <p class="text-muted text-center">
                         <i class="fas fa-robot me-1"></i>
                         ИИ анализирует похожие вакансии...
                     </p>
+                    {% if similar_jobs %}
+                        {% for sj, score in similar_jobs %}
+                            <div class="similar-job mb-3 {% if not forloop.last %}pb-3 border-bottom{% endif %}">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'core:job_detail' sj.pk %}" class="text-decoration-none">
+                                        {{ sj.title }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-building me-1"></i>{{ sj.company.name }}
+                                    · <span class="badge badge-experience">{{ sj.get_experience_level_display }}</span>
+                                    {% if score %}
+                                        <span class="badge bg-info ms-1" title="Похожесть">
+                                            {{ score|floatformat:2 }}
+                                        </span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Пока нет похожих вакансий
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.job-description, .job-requirements {
-    white-space: pre-line;
-}
-</style>
 {% endblock %}

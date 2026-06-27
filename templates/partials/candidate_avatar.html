@@ -1,0 +1,22 @@
+{# Аватар кандидата — инициалы в кружке.
+   Параметры:
+     - candidate: модель Candidate (или user с first_name/last_name)
+     - size: "sm" | "md" (default) | "lg" | "xl"
+     - bg: цвет фона Bootstrap (default: "primary")
+     - with_email: bool — показывать email справа
+#}
+{% with size_class=size|default:"md" %}
+<div class="d-flex align-items-center">
+    <div class="avatar-circle avatar-{{ size_class }} bg-{{ bg|default:"primary" }} text-white me-2">
+        {{ candidate.first_name.0|default_if_none:"" }}{{ candidate.last_name.0|default_if_none:"" }}
+    </div>
+    {% if with_email %}
+        <div>
+            <strong>{{ candidate.get_full_name|default:candidate.user.username }}</strong>
+            {% if candidate.email %}
+                <br><small class="text-muted">{{ candidate.email }}</small>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endwith %}

@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 class AnalysisEngine:
     """Главный движок для анализа резюме и сопоставления с вакансиями"""
-    
+
+    enabled = True
+
     def __init__(self):
         self.document_parser = DocumentParser()
         self.text_processor = TextProcessor()

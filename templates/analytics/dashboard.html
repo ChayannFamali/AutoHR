@@ -3,59 +3,9 @@
 
 {% block title %}Аналитика - AutoHR{% endblock %}
 
-{% block extra_css %}
-<style>
-.metric-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.metric-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.metric-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-.chart-container {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.chart-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: #333;
-}
-
-.chart-wrapper {
-    position: relative;
-    height: 300px;
-}
-
-.loading {
-    text-align: center;
-    padding: 50px;
-    color: #666;
-}
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container-fluid my-4">
-    
+
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="h2">
@@ -66,49 +16,86 @@
         </div>
     </div>
 
-    
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="metric-card">
+
+    <div class="row mb-4 g-3">
+        <div class="col-md-6">
+            <div class="metric-card metric-card-lg">
                 <div class="metric-value">{{ total_applications }}</div>
                 <div class="metric-label">
-                    <i class="fas fa-file-alt me-1"></i>
+                    <i class="fas fa-file-alt"></i>
                     Всего заявок
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="metric-card">
                 <div class="metric-value">{{ total_resumes }}</div>
                 <div class="metric-label">
-                    <i class="fas fa-file-pdf me-1"></i>
-                    Резюме загружено
+                    <i class="fas fa-file-pdf"></i>
+                    Резюме
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="metric-card">
                 <div class="metric-value">{{ total_interviews }}</div>
                 <div class="metric-label">
-                    <i class="fas fa-calendar-alt me-1"></i>
+                    <i class="fas fa-calendar-alt"></i>
                     Собеседований
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="metric-card">
-                <div class="metric-value">{{ avg_ai_score|floatformat:2 }}</div>
+        <div class="col-md-2">
+            <div class="metric-card"
+                 hx-get="{% url 'analytics:time_to_hire' %}"
+                 hx-trigger="load"
+                 hx-swap="none">
+                <div class="metric-value" id="timeToHireValue">—</div>
                 <div class="metric-label">
-                    <i class="fas fa-robot me-1"></i>
-                    Средняя AI оценка
+                    <i class="fas fa-clock"></i>
+                    <span id="timeToHireLabel">Дней до найма</span>
                 </div>
             </div>
         </div>
     </div>
 
-    
+
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="metric-card metric-warning">
+                <div class="metric-value">{{ total_jobs }}</div>
+                <div class="metric-label">
+                    <i class="fas fa-briefcase"></i>
+                    Активных вакансий
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="metric-card metric-success">
+                <div class="metric-value">{{ avg_ai_score|floatformat:2 }}</div>
+                <div class="metric-label">
+                    <i class="fas fa-robot"></i>
+                    Средняя AI оценка
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card metric-purple"
+                 hx-get="{% url 'analytics:conversion_rates' %}"
+                 hx-trigger="load"
+                 hx-swap="none">
+                <div class="metric-value" id="conversionRateValue">—</div>
+                <div class="metric-label">
+                    <i class="fas fa-percentage"></i>
+                    Конверсия
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="row">
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -121,7 +108,7 @@
             </div>
         </div>
 
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -134,7 +121,7 @@
             </div>
         </div>
 
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -147,7 +134,7 @@
             </div>
         </div>
 
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -160,7 +147,7 @@
             </div>
         </div>
 
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -173,7 +160,7 @@
             </div>
         </div>
 
-        
+
         <div class="col-lg-6 mb-4">
             <div class="chart-container">
                 <div class="chart-title">
@@ -185,223 +172,66 @@
                 </div>
             </div>
         </div>
+
+
+        <div class="col-lg-12 mb-4">
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-filter me-2"></i>
+                    Воронка рекрутинга
+                </div>
+                <div class="chart-wrapper chart-wrapper-sm">
+                    <canvas id="funnelChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-percentage me-2"></i>
+                    Конверсия по этапам
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="conversionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-building me-2"></i>
+                    Топ работодателей
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="topEmployersChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'vendor/js/chart.umd.min.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Общие настройки для графиков
-    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    Chart.defaults.color = '#666';
-    
-    // График динамики заявок
-    fetch('{% url "analytics:applications_chart" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('applicationsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Заявки',
-                        data: data.data,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
-                }
-            });
-        });
-
-    // График AI оценок
-    fetch('{% url "analytics:ai_scores" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('aiScoresChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Количество',
-                        data: data.data,
-                        backgroundColor: [
-                            '#ef4444', '#f97316', '#eab308', 
-                            '#22c55e', '#10b981'
-                        ],
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        });
-
-    // График популярных навыков
-// График популярных навыков
-    fetch('{% url "analytics:popular_skills" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('skillsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',  // изменено с 'horizontalBar' на 'bar'
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Частота',
-                        data: data.data,
-                        backgroundColor: '#8b5cf6',
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',  // это делает график горизонтальным
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Error loading skills chart:', error);
-        });
-    // График статусов заявок
-    fetch('{% url "analytics:application_status" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        data: data.data,
-                        backgroundColor: [
-                            '#fbbf24', '#3b82f6', '#10b981', 
-                            '#ef4444', '#8b5cf6'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        });
-
-    // График топ вакансий
-    fetch('{% url "analytics:top_jobs" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('topJobsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Заявки',
-                        data: data.data,
-                        backgroundColor: '#06b6d4',
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 45
-                            }
-                        }
-                    }
-                }
-            });
-        });
-
-    // График обработки резюме
-    fetch('{% url "analytics:resume_processing" %}')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('resumeProcessingChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        data: data.data,
-                        backgroundColor: [
-                            '#64748b', '#f59e0b', '#10b981', '#ef4444'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        });
-});
+    /* Глобальные URL endpoints для dashboard.js (читает window.AutoHR.urls.dashboard) */
+    window.AutoHR = window.AutoHR || {};
+    window.AutoHR.urls = window.AutoHR.urls || {};
+    window.AutoHR.urls.dashboard = {
+        applicationsChart: '{% url "analytics:applications_chart" %}',
+        aiScores:          '{% url "analytics:ai_scores" %}',
+        popularSkills:     '{% url "analytics:popular_skills" %}',
+        applicationStatus: '{% url "analytics:application_status" %}',
+        topJobs:           '{% url "analytics:top_jobs" %}',
+        resumeProcessing:  '{% url "analytics:resume_processing" %}',
+        recruitmentFunnel: '{% url "analytics:recruitment_funnel" %}',
+        conversionRates:   '{% url "analytics:conversion_rates" %}',
+        topEmployers:      '{% url "analytics:top_employers" %}',
+    };
 </script>
+<script src="{% static 'vendor/js/pages/dashboard.js' %}"></script>
 {% endblock %}

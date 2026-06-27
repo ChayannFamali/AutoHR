@@ -9,7 +9,6 @@ from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 from openpyxl.styles import Alignment, Font, PatternFill
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.units import inch
@@ -17,7 +16,10 @@ from reportlab.pdfbase import pdfmetrics, pdfutils
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from ai_analysis.services.analysis_engine import AnalysisEngine
+from ai_analysis.tasks import (
+    analyze_resume_task, match_candidate_with_job_task,
+)
+from accounts.decorators import hr_required
 from core.models import Application, Candidate
 from core.utils import (can_export_data, can_manage_applications,
                         can_view_sensitive_data)
@@ -63,42 +65,29 @@ def upload_resume(request, application_id=None):
                     resume.application = application
                 
                 resume.save()
-                
-                try:
-                    from ai_analysis.services.analysis_engine import \
-                        AnalysisEngine
-                    
-                    resume.status = 'processing'
-                    resume.save()
-                    
-                    analysis_engine = AnalysisEngine()
-                    analysis_result = analysis_engine.analyze_resume(resume.id)
-                    
-                    if analysis_result['success']:
-                        messages.success(request, 'Резюме успешно загружено и проанализировано!')
-                        
-                        if application:
-                            match_result = analysis_engine.match_candidate_with_job(
-                                resume.id, application.job.id
-                            )
-                            if match_result['success']:
-                                application.ai_score = match_result['overall_score']
-                                application.ai_feedback = match_result['recommendation']
-                                application.save()
-                    else:
-                        messages.warning(request, 'Резюме загружено, но AI-анализ не удался.')
-                        
-                except ImportError:
-                    resume.status = 'uploaded'
-                    resume.save()
-                    messages.success(request, 'Резюме успешно загружено! (AI-анализ недоступен)')
-                    
-                except Exception as e:
-                    resume.status = 'error'
-                    resume.processing_error = str(e)
-                    resume.save()
-                    messages.success(request, f'Резюме загружено! AI-анализ будет выполнен позже. ({str(e)[:100]})')
-                
+                from django.conf import settings
+
+                resume.status = 'processing'
+                resume.save(update_fields=['status'])
+
+                if getattr(settings, 'AI_ENABLED', False):
+                    analyze_resume_task.delay(resume.id)
+                    if application:
+                        match_candidate_with_job_task.delay(
+                            resume.id, application.job.id,
+                        )
+                    messages.success(
+                        request,
+                        'Резюме загружено! AI-анализ запущен в фоне.',
+                    )
+                else:
+                    resume.status = 'processed'
+                    resume.save(update_fields=['status'])
+                    messages.success(
+                        request,
+                        'Резюме загружено. (AI-анализ выключен — скоринг выполнит HR)',
+                    )
+
                 if application:
                     return redirect('core:application_list')
                 else:
@@ -121,31 +110,36 @@ def reprocess_resume(request, resume_id):
     """Повторная обработка резюме"""
     if request.method == 'POST':
         try:
+            from django.conf import settings
+
             resume = get_object_or_404(Resume, id=resume_id)
-            
-            analysis_engine = AnalysisEngine()
+
             resume.status = 'processing'
             resume.processing_error = ''
-            resume.save()
-            
-            analysis_result = analysis_engine.analyze_resume(resume_id)
-            
-            if analysis_result['success']:
-                messages.success(request, 'Резюме успешно переобработано!')
-                
+            resume.save(update_fields=['status', 'processing_error'])
+
+            if getattr(settings, 'AI_ENABLED', False):
+                analyze_resume_task.delay(resume_id)
                 if resume.application:
-                    match_result = analysis_engine.match_candidate_with_job(
-                        resume_id, 
-                        resume.application.job.id
+                    match_candidate_with_job_task.delay(
+                        resume_id, resume.application.job.id,
                     )
-                    
-                    if match_result['success']:
-                        resume.application.ai_score = match_result['overall_score']
-                        resume.application.ai_feedback = match_result['recommendation']
-                        resume.application.save()
+                messages.success(
+                    request,
+                    'Резюме переобратано! AI-анализ запущен в фоне.',
+                )
             else:
-                messages.error(request, f'Ошибка при переобработке: {analysis_result.get("error")}')
-        
+                from ai_analysis.services import NullAnalysisEngine
+                engine = NullAnalysisEngine()
+                engine.analyze_resume(resume_id)
+                if resume.application:
+                    engine.match_candidate_with_job(resume_id, resume.application.job.id)
+                messages.success(
+                    request,
+                    'Резюме переобратано. (AI-анализ выключен)',
+                )
+
+
         except Exception as e:
             messages.error(request, f'Ошибка: {str(e)}')
     
@@ -153,6 +147,8 @@ def reprocess_resume(request, resume_id):
 
 
 
+@login_required
+@hr_required
 def export_resumes_excel(request):
     status = request.GET.get('status')
     language = request.GET.get('language')
@@ -219,6 +215,8 @@ def export_resumes_excel(request):
     workbook.save(response)
     return response
 
+@login_required
+@hr_required
 def export_resumes_csv(request):
     status = request.GET.get('status')
     language = request.GET.get('language')
@@ -264,6 +262,8 @@ def export_resumes_csv(request):
     
     return response
 
+@login_required
+@hr_required
 def export_resumes_pdf(request):
     import io
     import os

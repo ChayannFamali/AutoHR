@@ -1,0 +1,82 @@
+{% load core_extras %}
+{# Partial-фрагмент списка вакансий для HTMX-обновления #}
+{# Используется из templates/core/job_list.html: #}
+{#   hx-get="{% url 'core:job_list_htmx' %}" #}
+{#   hx-trigger="keyup changed delay:400ms from:input[name=search]" #}
+{#   hx-target="#jobs-list-container" hx-swap="innerHTML" #}
+
+{% if jobs %}
+    <div class="row">
+        {% for job in jobs %}
+            <div class="col-12 mb-3">
+                <div class="card job-card h-100">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title mb-2">
+                                    <a href="{% url 'core:job_detail' job.pk %}" class="job-title">
+                                        {{ job.title }}
+                                    </a>
+                                </h5>
+                                <p class="company-name mb-2">
+                                    <i class="fas fa-building me-1"></i>
+                                    {{ job.company.name }}
+                                </p>
+                                <p class="card-text text-truncate-2">
+                                    {{ job.description|truncatewords:30 }}
+                                </p>
+                                <div class="job-meta mt-3">
+                                    <span class="badge badge-experience me-2">
+                                        {{ job.get_experience_level_display }}
+                                    </span>
+                                    {% if job.remote_work %}
+                                        <span class="badge badge-remote me-2">
+                                            <i class="fas fa-home me-1"></i>
+                                            Удаленно
+                                        </span>
+                                    {% endif %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        {{ job.location }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                {% if job.salary_min or job.salary_max %}
+                                    <div class="salary-range mb-3">
+                                        <i class="fas fa-ruble-sign me-1"></i>
+                                        {% if job.salary_min and job.salary_max %}
+                                            {{ job.salary_min|floatformat:0 }} - {{ job.salary_max|floatformat:0 }}
+                                        {% elif job.salary_min %}
+                                            от {{ job.salary_min|floatformat:0 }}
+                                        {% elif job.salary_max %}
+                                            до {{ job.salary_max|floatformat:0 }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ job.created_at|timesince }} назад
+                                    </small>
+                                </div>
+                                <a href="{% url 'core:job_detail' job.pk %}" class="btn btn-primary btn-sm me-1">
+                                    <i class="fas fa-eye me-1"></i>
+                                    Подробнее
+                                </a>
+                                {% if user.is_authenticated %}
+                                    {% show_save_button job %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-search me-2"></i>
+        По вашему запросу ничего не найдено. Попробуйте изменить фильтры.
+    </div>
+{% endif %}

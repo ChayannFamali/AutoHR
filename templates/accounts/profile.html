@@ -5,98 +5,282 @@
 
 {% block content %}
 <div class="container my-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-user me-2"></i>
-                        Профиль пользователя
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center">
-                            <div class="avatar-circle bg-primary text-white mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2rem;">
-                                {{ user.first_name.0 }}{{ user.last_name.0 }}
-                            </div>
-                            <h5>{{ user.get_full_name }}</h5>
-                            <span class="badge bg-{% if user.user_type == 'hr' %}primary{% else %}success{% endif %}">
-                                {{ user.get_user_type_display }}
-                            </span>
-                        </div>
-                        <div class="col-md-8">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>Email:</strong></td>
-                                    <td>{{ user.email }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Телефон:</strong></td>
-                                    <td>{{ user.phone|default:"Не указан" }}</td>
-                                </tr>
-                                {% if user.is_hr %}
-                                    <tr>
-                                        <td><strong>Компания:</strong></td>
-                                        <td>{{ user.company|default:"Не указана" }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Должность:</strong></td>
-                                        <td>{{ user.position|default:"Не указана" }}</td>
-                                    </tr>
-                                {% endif %}
-                                <tr>
-                                    <td><strong>Дата регистрации:</strong></td>
-                                    <td>{{ user.date_joined|date:"d.m.Y" }}</td>
-                                </tr>
-                            </table>
-                        </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-user me-2 text-primary"></i>
+                Профиль
+            </h1>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-1"></i>
+                Редактировать основное
+            </a>
+        </div>
+    </div>
+
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <div class="avatar-circle avatar-xl bg-primary text-white mx-auto">
+                        {{ user.first_name.0 }}{{ user.last_name.0 }}
                     </div>
-                    
-                    {% if profile.bio %}
-                        <hr>
-                        <h6>О себе:</h6>
-                        <p>{{ profile.bio }}</p>
+                </div>
+                <div class="col-md-7">
+                    <h3 class="mb-1">{{ user.get_full_name|default:user.username }}</h3>
+                    <span class="badge bg-{% if user.user_type == 'hr' %}primary{% else %}success{% endif %}">
+                        {{ user.get_user_type_display }}
+                    </span>
+                    {% if candidate %}
+                        {% if candidate.location %}
+                            <span class="ms-2 text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ candidate.location }}
+                            </span>
+                        {% endif %}
+                        {% if candidate.email %}
+                            <span class="ms-2 text-muted">
+                                <i class="fas fa-envelope me-1"></i>{{ candidate.email }}
+                            </span>
+                        {% endif %}
                     {% endif %}
                 </div>
-                <div class="card-footer">
-                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
-                        <i class="fas fa-edit me-1"></i>
-                        Редактировать профиль
-                    </a>
+                <div class="col-md-3 text-end">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fw-bold">{{ work_experiences|length }}</div>
+                            <small class="text-muted">Опыт</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold">{{ educations|length }}</div>
+                            <small class="text-muted">Образование</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold">{{ skills|length }}</div>
+                            <small class="text-muted">Навыки</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if profile.bio %}
+                <hr>
+                <p class="mb-0">{{ profile.bio }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab"
+                    data-bs-target="#overview-pane" type="button" role="tab">
+                <i class="fas fa-info-circle me-1"></i>Обзор
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="experience-tab" data-bs-toggle="tab"
+                    data-bs-target="#experience-pane" type="button" role="tab">
+                <i class="fas fa-briefcase me-1"></i>Опыт ({{ work_experiences|length }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="education-tab" data-bs-toggle="tab"
+                    data-bs-target="#education-pane" type="button" role="tab">
+                <i class="fas fa-graduation-cap me-1"></i>Образование ({{ educations|length }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="skills-tab" data-bs-toggle="tab"
+                    data-bs-target="#skills-pane" type="button" role="tab">
+                <i class="fas fa-cogs me-1"></i>Навыки ({{ skills|length }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="profileTabsContent">
+
+
+        <div class="tab-pane fade show active" id="overview-pane" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if candidate %}
+                        <table class="table table-borderless">
+                            <tr>
+                                <td width="30%"><strong>Email:</strong></td>
+                                <td>{{ candidate.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Телефон:</strong></td>
+                                <td>{{ candidate.phone|default:"Не указан" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Местоположение:</strong></td>
+                                <td>{{ candidate.location|default:"Не указано" }}</td>
+                            </tr>
+                            {% if candidate.linkedin_url %}
+                                <tr>
+                                    <td><strong>LinkedIn:</strong></td>
+                                    <td><a href="{{ candidate.linkedin_url }}" target="_blank">{{ candidate.linkedin_url }}</a></td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    {% else %}
+                        <p class="text-muted text-center">
+                            Профиль кандидата не заполнен.
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Быстрые действия</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        {% if user.is_hr %}
-                            <a href="{% url 'core:application_list' %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-file-alt me-1"></i>
-                                Заявки
-                            </a>
-                            <a href="{% url 'calendar_app:interview_list' %}" class="btn btn-outline-info btn-sm">
-                                <i class="fas fa-calendar me-1"></i>
-                                Собеседования
-                            </a>
-                        {% else %}
-                            <a href="{% url 'core:job_list' %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-briefcase me-1"></i>
-                                Вакансии
-                            </a>
-                            <a href="{% url 'resume:upload_resume' %}" class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-upload me-1"></i>
-                                Загрузить резюме
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
+
+
+        <div class="tab-pane fade" id="experience-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Опыт работы</h5>
+                {% if candidate %}
+                    <a href="{% url 'accounts:add_work_experience' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                {% endif %}
             </div>
+            {% if work_experiences %}
+                {% for we in work_experiences %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">{{ we.position }} <small class="text-muted">@ {{ we.company }}</small></h6>
+                                    <small class="text-muted">
+                                        {{ we.start_date|date:"m.Y" }} —
+                                        {% if we.is_current %}настоящее время{% else %}{{ we.end_date|date:"m.Y" }}{% endif %}
+                                    </small>
+                                    {% if we.description %}
+                                        <p class="mb-0 mt-2">{{ we.description }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'accounts:edit_work_experience' we.id %}"
+                                       class="btn btn-outline-secondary" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'accounts:delete_work_experience' we.id %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger"
+                                                data-confirm="Удалить?" title="Удалить">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">
+                    {% if candidate %}
+                        Нет записей об опыте работы.
+                    {% else %}
+                        Профиль кандидата не создан.
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+
+        <div class="tab-pane fade" id="education-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Образование</h5>
+                {% if candidate %}
+                    <a href="{% url 'accounts:add_education' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                {% endif %}
+            </div>
+            {% if educations %}
+                {% for ed in educations %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">{{ ed.institution }}</h6>
+                                    <small class="text-muted">
+                                        {{ ed.get_degree_display }}{% if ed.field_of_study %}, {{ ed.field_of_study }}{% endif %}
+                                        · {{ ed.start_year }}–{{ ed.end_year }}
+                                    </small>
+                                    {% if ed.description %}
+                                        <p class="mb-0 mt-2">{{ ed.description }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'accounts:edit_education' ed.id %}"
+                                       class="btn btn-outline-secondary" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'accounts:delete_education' ed.id %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger"
+                                                data-confirm="Удалить?" title="Удалить">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">
+                    {% if candidate %}
+                        Нет записей об образовании.
+                    {% else %}
+                        Профиль кандидата не создан.
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+
+        <div class="tab-pane fade" id="skills-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Навыки</h5>
+                {% if candidate %}
+                    <a href="{% url 'accounts:add_skill' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                {% endif %}
+            </div>
+            {% if skills %}
+                <div class="d-flex flex-wrap gap-2 skills-cloud">
+                    {% for sk in skills %}
+                        <span class="badge bg-{{ sk.level_color }} p-2">
+                            {{ sk.name }}
+                            <small class="ms-1">({{ sk.get_level_display }})</small>
+                            <form method="post" action="{% url 'accounts:delete_skill' sk.id %}"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link p-0 ms-1 text-white"
+                                        data-confirm="Удалить навык?" title="Удалить">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-center">
+                    {% if candidate %}
+                        Нет навыков. Добавьте, чтобы AI мог точнее подбирать вакансии.
+                    {% else %}
+                        Профиль кандидата не создан.
+                    {% endif %}
+                </p>
+            {% endif %}
         </div>
     </div>
 </div>

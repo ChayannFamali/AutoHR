@@ -5,29 +5,42 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from django.conf import settings
-from sentence_transformers import SentenceTransformer
+
+# sentence_transformers импортируется лениво — чтобы модуль грузился
+# даже без установленного AI-стека (см. docs/AIisOptional.md).
+SentenceTransformer = None
 
 logger = logging.getLogger(__name__)
 
+
 class EmbeddingService:
     """Сервис для создания векторных представлений текста"""
-    
+
     def __init__(self, model_name: str = 'sentence-transformers/multilingual-e5-base'):
         self.model_name = model_name
         self.model = None
         self._load_model()
-    
+
+    def _ensure_sentence_transformers(self):
+        """Ленивый импорт sentence_transformers."""
+        global SentenceTransformer
+        if SentenceTransformer is None:
+            from sentence_transformers import SentenceTransformer as _ST
+            SentenceTransformer = _ST
+        return SentenceTransformer
+
     def _load_model(self):
         """Загружает модель для создания embeddings"""
+        ST = self._ensure_sentence_transformers()
         try:
             logger.info(f"Loading embedding model: {self.model_name}")
-            self.model = SentenceTransformer(self.model_name)
+            self.model = ST(self.model_name)
             logger.info("Embedding model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {str(e)}")
             try:
                 logger.info("Trying fallback model...")
-                self.model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+                self.model = ST('sentence-transformers/all-MiniLM-L6-v2')
                 logger.info("Fallback model loaded successfully")
             except Exception as fallback_e:
                 logger.error(f"Failed to load fallback model: {str(fallback_e)}")

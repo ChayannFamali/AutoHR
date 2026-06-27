@@ -1,26 +1,31 @@
 FROM python:3.12-slim
 
-# Устанавливаем системные зависимости
+# Системные зависимости для psycopg2, Pillow и пр.
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Копируем и устанавливаем зависимости
+# Зависимости (requirements.txt уже включает psycopg2-binary, redis, celery)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем проект
+# Проект
 COPY . .
 
-# Создаем директории
+# Директории для media и собранной статики
 RUN mkdir -p media staticfiles
 
-# Собираем статику
-RUN python manage.py collectstatic --noinput
+# Собираем статику под prod-настройками
+RUN DJANGO_SETTINGS_MODULE=autohr.settings_prod \
+    python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Команда для продакшена
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "autohr.wsgi:application"]
+# По умолчанию gunicorn под prod-настройками.
+# В docker-compose можно переопределить command для celery worker / beat.
+ENV DJANGO_SETTINGS_MODULE=autohr.settings_prod
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "autohr.wsgi:application"]

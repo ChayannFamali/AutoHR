@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+
+{% block title %}Избранное - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-bookmark me-2 text-warning"></i>
+                Избранное
+            </h1>
+            <p class="text-muted">Сохранённые вакансии и поисковые запросы</p>
+        </div>
+    </div>
+
+
+    <ul class="nav nav-tabs mb-4" id="favoritesTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="jobs-tab" data-bs-toggle="tab"
+                    data-bs-target="#jobs-pane" type="button" role="tab">
+                <i class="fas fa-briefcase me-1"></i>
+                Вакансии ({{ saved_jobs|length }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="searches-tab" data-bs-toggle="tab"
+                    data-bs-target="#searches-pane" type="button" role="tab">
+                <i class="fas fa-search me-1"></i>
+                Поиски ({{ saved_searches|length }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="favoritesTabsContent">
+
+        <div class="tab-pane fade show active" id="jobs-pane" role="tabpanel">
+            {% if saved_jobs %}
+                <div class="row">
+                    {% for saved in saved_jobs %}
+                        <div class="col-12 mb-3">
+                            <div class="card job-card h-100">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h5 class="card-title mb-2">
+                                                <a href="{% url 'core:job_detail' saved.job.pk %}" class="job-title">
+                                                    {{ saved.job.title }}
+                                                </a>
+                                            </h5>
+                                            <p class="company-name mb-2">
+                                                <i class="fas fa-building me-1"></i>
+                                                {{ saved.job.company.name }}
+                                            </p>
+                                            <p class="card-text text-truncate-2">
+                                                {{ saved.job.description|truncatewords:25 }}
+                                            </p>
+                                            <div class="job-meta mt-3">
+                                                <span class="badge badge-experience me-2">
+                                                    {{ saved.job.get_experience_level_display }}
+                                                </span>
+                                                {% if saved.job.remote_work %}
+                                                    <span class="badge badge-remote me-2">
+                                                        <i class="fas fa-home me-1"></i>Удаленно
+                                                    </span>
+                                                {% endif %}
+                                                <span class="text-muted">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                                    {{ saved.job.location }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            <small class="text-muted d-block mb-2">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Сохранено {{ saved.created_at|timesince }} назад
+                                            </small>
+                                            {% if saved.job.salary_min or saved.job.salary_max %}
+                                                <div class="salary-range mb-3">
+                                                    <i class="fas fa-ruble-sign me-1"></i>
+                                                    {% if saved.job.salary_min and saved.job.salary_max %}
+                                                        {{ saved.job.salary_min|floatformat:0 }} - {{ saved.job.salary_max|floatformat:0 }}
+                                                    {% elif saved.job.salary_min %}
+                                                        от {{ saved.job.salary_min|floatformat:0 }}
+                                                    {% elif saved.job.salary_max %}
+                                                        до {{ saved.job.salary_max|floatformat:0 }}
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                            <a href="{% url 'core:job_detail' saved.job.pk %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Открыть
+                                            </a>
+                                            {% show_save_button saved.job %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="far fa-bookmark fa-3x text-muted mb-3"></i>
+                    <h4>Нет сохранённых вакансий</h4>
+                    <p class="text-muted">Нажмите «В избранное» на интересной вакансии, чтобы вернуться к ней позже</p>
+                    <a href="{% url 'core:job_list' %}" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>К списку вакансий
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+
+        <div class="tab-pane fade" id="searches-pane" role="tabpanel">
+            {% if saved_searches %}
+                <div class="list-group">
+                    {% for s in saved_searches %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ s.name }}</h6>
+                                    <small class="text-muted">
+                                        {% for k, v in s.params.items %}
+                                            <span class="badge bg-light text-dark me-1">{{ k }}={{ v }}</span>
+                                        {% endfor %}
+                                    </small>
+                                    {% if s.last_used_at %}
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="fas fa-clock me-1"></i>
+                                            Использован {{ s.last_used_at|timesince }} назад
+                                        </small>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'core:run_saved_search' s.id %}" class="btn btn-primary">
+                                        <i class="fas fa-play me-1"></i>Запустить
+                                    </a>
+                                    <button class="btn btn-outline-danger"
+                                            hx-post="{% url 'core:delete_saved_search' s.id %}"
+                                            hx-confirm="Удалить сохранённый поиск?"
+                                            hx-target="closest .list-group-item"
+                                            hx-swap="outerHTML"
+                                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4>Нет сохранённых поисков</h4>
+                    <p class="text-muted">Сохраните текущие фильтры как поиск, чтобы быстро возвращаться к ним</p>
+                    <a href="{% url 'core:job_list' %}" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>К списку вакансий
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

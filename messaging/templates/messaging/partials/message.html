@@ -1,0 +1,12 @@
+<div class="chat-message mb-2" data-message-id="{{ message.id }}">
+    <div class="d-flex {% if message.sender == user %}justify-content-end{% endif %}">
+        <div class="message-bubble {% if message.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} px-3 py-2 rounded"
+             style="max-width: 75%;">
+            <div class="small {% if message.sender == user %}text-white-50{% else %}text-muted{% endif %}">
+                {{ message.sender.get_full_name|default:message.sender.username }}
+                · {{ message.created_at|date:"H:i" }}
+            </div>
+            <div>{{ message.body|linebreaksbr }}</div>
+        </div>
+    </div>
+</div>

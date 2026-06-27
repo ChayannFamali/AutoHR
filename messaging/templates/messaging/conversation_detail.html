@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Переписка - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            {{ other.get_full_name|default:other.username }}
+                        </h5>
+                        {% if conversation.related_job %}
+                            <small class="text-muted">
+                                По вакансии:
+                                <a href="{% url 'core:job_detail' conversation.related_job.pk %}">
+                                    {{ conversation.related_job.title }}
+                                </a>
+                            </small>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'messaging:conversation_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> К списку
+                    </a>
+                </div>
+
+
+                <div class="card-body chat-messages"
+                     id="messages-container"
+                     style="max-height: 500px; overflow-y: auto;"
+                     hx-get="{% url 'messaging:poll_messages' conversation.id %}"
+                     hx-trigger="every 3s"
+                     hx-swap="beforeend">
+                    {% include 'messaging/partials/messages_list.html' with messages=messages since_id=0 %}
+                </div>
+
+
+                <div class="card-footer">
+                    <form hx-post="{% url 'messaging:send_message' conversation.id %}"
+                          hx-target="#messages-container"
+                          hx-swap="beforeend"
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                          hx-on::after-request="this.reset()">
+                        <div class="input-group">
+                            <input type="text" name="body" class="form-control"
+                                   placeholder="Введите сообщение..." required
+                                   autocomplete="off">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-muted small mt-2 text-center">
+                <i class="fas fa-info-circle"></i>
+                Сообщения обновляются автоматически каждые 3 секунды
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

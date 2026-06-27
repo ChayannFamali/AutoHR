@@ -1,0 +1,11 @@
+{% load core_extras %}
+{# Skeleton-заглушка для загрузки.
+   Параметры:
+     - type: "line" | "block" | "circle"
+     - count: сколько элементов (default 1)
+     - width: ширина в % (default 100)
+#}
+{% for i in count|default:1|times %}
+    <span class="skeleton skeleton-{% if type %}{{ type }}{% else %}line{% endif %}"
+          style="width: {% if width %}{{ width }}{% else %}100{% endif %}%;"></span>
+{% endfor %}

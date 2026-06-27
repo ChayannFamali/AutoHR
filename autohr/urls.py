@@ -26,6 +26,9 @@ urlpatterns = [
     path('resume/', include('resume.urls')),
     path('calendar/', include('calendar_app.urls')),
     path('analytics/', include('analytics.urls')),
+    path('messages/', include('messaging.urls')),
+    # Health checks (Этап 5.4) — для Docker / мониторинга
+    path('health/', include('core.health_urls')),
 ]
 
 if settings.DEBUG:

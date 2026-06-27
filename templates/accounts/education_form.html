@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if ed %}Редактировать{% else %}Новое образование{% endif %} — AutoHR
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        {% if ed %}Редактировать{% else %}Новое образование{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">{{ form.institution.label }}</label>
+                                {{ form.institution }}
+                                {% if form.institution.errors %}<div class="text-danger small">{{ form.institution.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.degree.label }}</label>
+                                {{ form.degree }}
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">{{ form.field_of_study.label }}</label>
+                                {{ form.field_of_study }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.start_year.label }}</label>
+                                {{ form.start_year }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.end_year.label }}</label>
+                                {{ form.end_year }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">{{ form.description.label }}</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Сохранить
+                            </button>
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

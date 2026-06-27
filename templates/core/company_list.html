@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load static core_extras %}
+
+{% block title %}Компании - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-building me-2 text-primary"></i>
+                Компании
+            </h1>
+            <p class="text-muted">Изучите компании и их открытые вакансии</p>
+        </div>
+    </div>
+
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Поиск</label>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Название или описание компании"
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Отрасль</label>
+                    <select name="industry" class="form-select">
+                        <option value="">Все отрасли</option>
+                        {% for ind in industries %}
+                            <option value="{{ ind }}" {% if selected_industry == ind %}selected{% endif %}>{{ ind }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Найти
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if companies %}
+        <div class="row">
+            {% for company in companies %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-3">
+                                {% if company.logo %}
+                                    <img src="{{ company.logo.url }}" alt="{{ company.name }}"
+                                         class="company-logo-placeholder me-3">
+                                {% else %}
+                                    <div class="company-logo-placeholder me-3">
+                                        {{ company.name|first }}
+                                    </div>
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1">
+                                        <a href="{% url 'core:company_detail' company.slug %}" class="text-decoration-none">
+                                            {{ company.name }}
+                                        </a>
+                                    </h5>
+                                    {% if company.industry %}
+                                        <small class="text-muted">{{ company.industry }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if company.average_rating %}
+                                <div class="mb-2">
+                                    <span class="text-warning">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= company.average_rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                    <strong>{{ company.average_rating }}</strong>
+                                    <small class="text-muted">({{ company.reviews_count }} отзывов)</small>
+                                </div>
+                            {% endif %}
+
+                            <p class="card-text text-truncate-3">
+                                {{ company.description|default:"Описание пока не заполнено." }}
+                            </p>
+
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-briefcase me-1"></i>
+                                    {{ company.active_jobs_count }} вакансий
+                                </small>
+                                {% if company.employee_count %}
+                                    <small class="text-muted">{{ company.employee_count }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <h4>Компании не найдены</h4>
+            <p class="text-muted">Попробуйте изменить параметры поиска</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

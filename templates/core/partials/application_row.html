@@ -1,0 +1,65 @@
+{# Partial-фрагмент одной строки отклика для HTMX-обновления #}
+{# Заменяется целиком через hx-swap="outerHTML" при смене статуса #}
+{% load core_extras %}
+<tr id="application-row-{{ application.id }}">
+    {% if not is_candidate %}
+    <td>
+        {% include 'partials/candidate_avatar.html' with candidate=application.candidate size="md" with_email=True %}
+    </td>
+    {% endif %}
+    <td>
+        <a href="{% url 'core:job_detail' application.job.pk %}" class="text-decoration-none">
+            {{ application.job.title }}
+        </a>
+    </td>
+    <td>{{ application.job.company.name }}</td>
+    {% if can_view_sensitive_data %}
+    <td>
+        {% include 'partials/ai_score.html' with score=application.ai_score %}
+    </td>
+    {% endif %}
+    <td>
+        {% include 'partials/status_badge.html' with status=application.status display=application.get_status_display %}
+    </td>
+    <td>
+        <small>{{ application.applied_at|date:"d.m.Y H:i" }}</small>
+    </td>
+    {% if can_manage_applications %}
+    <td>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary"
+                    data-bs-toggle="tooltip" title="Просмотр"
+                    onclick="openDetailModal({{ application.id }})">
+                <i class="fas fa-eye"></i>
+            </button>
+            {% if application.status == 'pending' %}
+                <button type="button" class="btn btn-outline-success"
+                        data-bs-toggle="tooltip" title="Одобрить"
+                        hx-post="{% url 'core:update_application_status_htmx' application.id %}"
+                        hx-vals='{"status": "approved"}'
+                        hx-target="#application-row-{{ application.id }}"
+                        hx-swap="outerHTML"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                    <i class="fas fa-check"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="tooltip" title="Отклонить"
+                        hx-post="{% url 'core:update_application_status_htmx' application.id %}"
+                        hx-vals='{"status": "rejected"}'
+                        hx-target="#application-row-{{ application.id }}"
+                        hx-swap="outerHTML"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                    <i class="fas fa-times"></i>
+                </button>
+            {% endif %}
+            {% if application.status in 'pending,approved' %}
+                <button type="button" class="btn btn-outline-info"
+                        data-bs-toggle="tooltip" title="Запланировать собеседование"
+                        onclick="openScheduleModal({{ application.id }})">
+                    <i class="fas fa-calendar-plus"></i>
+                </button>
+            {% endif %}
+        </div>
+    </td>
+    {% endif %}
+</tr>

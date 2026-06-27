@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+.qwen
+docs
 
 # Distribution / packaging
 .Python
@@ -58,6 +60,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+db_test_*.sqlite3
+test_db.sqlite3
 
 # Flask stuff:
 instance/
@@ -104,6 +108,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.production
 .venv
 env/
 venv/
@@ -141,6 +147,9 @@ cython_debug/
 # VS Code
 .vscode/
 
+# Qwen Code
+.qwen/
+
 # Media files (uploaded documents)
 media/
 uploads/
@@ -152,6 +161,7 @@ static_collected/
 # ML Models cache
 models_cache/
 .transformers_cache/
+.cache/
 
 # OS generated files
 .DS_Store
@@ -168,17 +178,26 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.bak
 
 # Logs
 logs/
 *.log
 
-# Database backups
+# Database backups (Этап 5.7)
+backups/
+*.sqlite3.bak
 *.sql
 *.dump
+
+# Cache and temp dirs
+node_modules/
+dist/
+.cache/
 
 # Secret keys and configs
 secrets.json
 config.json
-.env.local
-.env.production
+
+# Qwen project memory (не часть кода)
+/home/*/.qwen/

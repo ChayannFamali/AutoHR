@@ -1,0 +1,16 @@
+{# Бейдж статуса заявки.
+   Параметры:
+     - status: "pending" | "processing" | "approved" | "rejected" | "interviewed"
+     - display: текстовое отображение (если None — берётся из get_FOO_display)
+     - size: "sm" | "md" (default)
+#}
+{% load core_extras %}
+<span class="badge badge-status status-{{ status }} {% if size == 'sm' %}badge-sm{% endif %}">
+    {% if status == 'pending' %}<i class="fas fa-clock me-1"></i>
+    {% elif status == 'processing' %}<i class="fas fa-cog fa-spin me-1"></i>
+    {% elif status == 'approved' %}<i class="fas fa-check me-1"></i>
+    {% elif status == 'rejected' %}<i class="fas fa-times me-1"></i>
+    {% elif status == 'interviewed' %}<i class="fas fa-user-check me-1"></i>
+    {% endif %}
+    {{ display|default:status|title }}
+</span>

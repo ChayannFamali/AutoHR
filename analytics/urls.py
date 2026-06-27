@@ -13,4 +13,8 @@ urlpatterns = [
     path('api/interview-completion/', views.interview_completion_rate, name='interview_completion'),
     path('api/top-jobs/', views.top_jobs_by_applications, name='top_jobs'),
     path('api/resume-processing/', views.resume_processing_stats, name='resume_processing'),
+    path('api/recruitment-funnel/', views.recruitment_funnel, name='recruitment_funnel'),
+    path('api/conversion-rates/', views.conversion_rates, name='conversion_rates'),
+    path('api/time-to-hire/', views.time_to_hire, name='time_to_hire'),
+    path('api/top-employers/', views.top_employers, name='top_employers'),
 ]

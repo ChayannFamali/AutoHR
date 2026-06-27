@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Сообщения - AutoHR{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="h2 mb-4">
+        <i class="fas fa-comments me-2 text-primary"></i>
+        Сообщения
+    </h1>
+
+    {% if conversations_meta %}
+        <div class="list-group">
+            {% for item in conversations_meta %}
+                {% with conv=item.conv unread=item.unread other_names=item.other_names %}
+                <a href="{% url 'messaging:conversation_detail' conv.id %}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ other_names }}</h6>
+                            {% if conv.last_message %}
+                                <small class="text-muted">
+                                    <strong>{{ conv.last_message.sender.username }}:</strong>
+                                    {{ conv.last_message.body|truncatewords:10 }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if unread %}
+                                <span class="badge bg-danger rounded-pill">{{ unread }}</span>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">{{ conv.updated_at|date:"d.m H:i" }}</small>
+                        </div>
+                    </div>
+                </a>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h4>Нет переписок</h4>
+            <p class="text-muted">Начните переписку из отклика или профиля кандидата</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

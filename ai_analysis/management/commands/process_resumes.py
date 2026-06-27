@@ -1,126 +1,81 @@
-import logging
+"""
+Ставит задачи analyze_resume_task в Celery-очередь.
 
+Не выполняет AI-анализ синхронно — для этого должен быть запущен воркер:
+    celery -A autohr worker -l info
+
+При AI_ENABLED=False задачи no-op (см. ai_analysis/tasks.py).
+"""
+from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
-from ai_analysis.services.analysis_engine import AnalysisEngine
+from ai_analysis.tasks import analyze_resume_task
 from resume.models import Resume
 
-logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'Process unanalyzed resumes'
-    
+    help = 'Enqueue resume analysis tasks to Celery'
+
     def add_arguments(self, parser):
         parser.add_argument(
             '--resume-id',
             type=int,
-            help='Process specific resume by ID'
+            help='Process specific resume by ID',
         )
         parser.add_argument(
             '--batch-size',
             type=int,
             default=10,
-            help='Number of resumes to process in batch'
+            help='Number of resumes to enqueue in batch',
         )
         parser.add_argument(
             '--force',
             action='store_true',
-            help='Force reprocess already analyzed resumes'
+            help='Re-enqueue already analyzed resumes',
         )
-    
+
     def handle(self, *args, **options):
-        analysis_engine = AnalysisEngine()
-        
+        if not getattr(settings, 'AI_ENABLED', False):
+            self.stdout.write(self.style.WARNING(
+                'AI_ENABLED=False — задачи будут no-op. Включите AI_ENABLED=True '
+                'и запустите воркер, чтобы выполнять анализ.',
+            ))
+
         if options['resume_id']:
-            # Обрабатываем конкретное резюме
-            self.process_single_resume(analysis_engine, options['resume_id'])
+            self.enqueue_single(options['resume_id'])
         else:
-            # Обрабатываем пакет резюме
-            self.process_batch_resumes(
-                analysis_engine, 
-                options['batch_size'], 
-                options['force']
+            self.enqueue_batch(
+                options['batch_size'],
+                options['force'],
             )
-    
-    def process_single_resume(self, analysis_engine, resume_id):
-        """Обрабатывает одно резюме"""
+
+    def enqueue_single(self, resume_id):
         try:
-            resume = Resume.objects.get(id=resume_id)
-            self.stdout.write(f"Processing resume {resume_id}: {resume.original_filename}")
-            
-            result = analysis_engine.analyze_resume(resume_id)
-            
-            if result['success']:
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Successfully processed resume {resume_id}. "
-                        f"Skills: {result['skills_count']}, "
-                        f"Experience: {result['experience_years']} years"
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f"Failed to process resume {resume_id}: {result['error']}"
-                    )
-                )
-                
+            Resume.objects.get(id=resume_id)
         except Resume.DoesNotExist:
-            self.stdout.write(
-                self.style.ERROR(f"Resume with ID {resume_id} not found")
-            )
-        except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"Error processing resume {resume_id}: {str(e)}")
-            )
-    
-    def process_batch_resumes(self, analysis_engine, batch_size, force_reprocess):
-        """Обрабатывает пакет резюме"""
+            self.stdout.write(self.style.ERROR(f'Resume {resume_id} not found'))
+            return
+        analyze_resume_task.delay(resume_id)
+        self.stdout.write(self.style.SUCCESS(
+            f'Task enqueued for resume_id={resume_id}',
+        ))
+
+    def enqueue_batch(self, batch_size, force_reprocess):
         if force_reprocess:
             resumes = Resume.objects.all()[:batch_size]
-            self.stdout.write(f"Force reprocessing {len(resumes)} resumes")
         else:
             resumes = Resume.objects.filter(
                 status__in=['uploaded', 'error']
             )[:batch_size]
-            self.stdout.write(f"Processing {len(resumes)} unanalyzed resumes")
-        
+
         if not resumes:
-            self.stdout.write("No resumes to process")
+            self.stdout.write('No resumes to enqueue')
             return
-        
-        processed_count = 0
-        error_count = 0
-        
+
         for resume in resumes:
-            try:
-                self.stdout.write(f"Processing: {resume.original_filename}")
-                
-                result = analysis_engine.analyze_resume(resume.id)
-                
-                if result['success']:
-                    processed_count += 1
-                    self.stdout.write(
-                        self.style.SUCCESS(f"✓ Processed {resume.original_filename}")
-                    )
-                else:
-                    error_count += 1
-                    self.stdout.write(
-                        self.style.ERROR(f"✗ Failed {resume.original_filename}: {result['error']}")
-                    )
-                    
-            except Exception as e:
-                error_count += 1
-                self.stdout.write(
-                    self.style.ERROR(f"✗ Error {resume.original_filename}: {str(e)}")
-                )
-        
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\nBatch processing completed:\n"
-                f"Successfully processed: {processed_count}\n"
-                f"Errors: {error_count}\n"
-                f"Total: {processed_count + error_count}"
-            )
-        )
+            analyze_resume_task.delay(resume.id)
+            self.stdout.write(f'Enqueued resume_id={resume.id} ({resume.original_filename})')
+
+        self.stdout.write(self.style.SUCCESS(
+            f'\nEnqueued {len(resumes)} tasks to Celery.',
+        ))

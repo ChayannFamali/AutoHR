@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta, timezone
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import JsonResponse
@@ -15,6 +14,7 @@ from django.views.generic import ListView
 
 from core.models import Application
 from core.utils import can_manage_applications
+from notifications.services import NotificationService
 
 from .forms import ScheduleInterviewForm
 from .models import Interview, InterviewTimeSlot, InterviewType
@@ -25,111 +25,33 @@ User = get_user_model()
 @require_http_methods(["POST"])
 def send_interview_reminder(request, interview_id):
     """Отправка напоминания о собеседовании"""
-    
+
     if not can_manage_applications(request.user):
         return JsonResponse({
             'success': False,
             'message': 'У вас нет прав для отправки напоминаний'
         })
-    
+
     try:
         interview = get_object_or_404(Interview, id=interview_id)
-        
-        from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-        
-        subject = f'Напоминание о собеседовании - {interview.scheduled_at.strftime("%d.%m.%Y в %H:%M")}'
-        
-        message = f"""
-        Здравствуйте, {interview.candidate.first_name}!
-        
-        Напоминаем вам о предстоящем собеседовании:
-        
-        Дата: {interview.scheduled_at.strftime("%d.%m.%Y")}
-        Время: {interview.scheduled_at.strftime("%H:%M")}
-        Вакансия: {interview.application.job.title}
-        Формат: {interview.get_format_display()}
-        
-        {f"Место/Ссылка: {interview.location}" if interview.location else ""}
-        
-        С уважением,
-        Команда HR
-        """
-        
-        send_mail(
-            subject,
-            message,
-            'noreply@autohr.com',
-            [interview.candidate.email],
-            fail_silently=False,
-        )
-        
+
+        if NotificationService.send_interview_reminder(interview):
+            return JsonResponse({
+                'success': True,
+                'message': f'Напоминание отправлено на {interview.candidate.email}'
+            })
+
         return JsonResponse({
-            'success': True,
-            'message': f'Напоминание отправлено на {interview.candidate.email}'
+            'success': False,
+            'message': 'Не удалось отправить напоминание'
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'success': False,
             'message': f'Ошибка при отправке: {str(e)}'
         })
 
-@login_required
-def interview_list(request):
-    """Список всех собеседований с фильтрами"""
-    
-    if request.user.is_hr() or request.user.is_admin_user():
-        interviews = Interview.objects.select_related(
-            'candidate', 'interviewer', 'application__job'
-        ).order_by('scheduled_at')
-    else:
-        interviews = Interview.objects.filter(
-            candidate__user=request.user
-        ).select_related('interviewer', 'application__job').order_by('scheduled_at')
-    
-    status_filter = request.GET.get('status')
-    if status_filter:
-        interviews = interviews.filter(status=status_filter)
-    
-    interviewer_filter = request.GET.get('interviewer')
-    if interviewer_filter:
-        interviews = interviews.filter(interviewer_id=interviewer_filter)
-    
-    date_filter = request.GET.get('date')
-    if date_filter:
-        interviews = interviews.filter(scheduled_at__date=date_filter)
-    
-    all_interviews = Interview.objects.all()
-    if not (request.user.is_hr() or request.user.is_admin_user()):
-        all_interviews = Interview.objects.filter(candidate__user=request.user)
-    
-    today = date.today()
-    stats = all_interviews.aggregate(
-        total=Count('id'),
-        today=Count('id', filter=Q(scheduled_at__date=today)),
-        completed=Count('id', filter=Q(status='completed')),
-    )
-    
-    from accounts.models import User
-    interviewers = User.objects.filter(
-        Q(user_type='hr') | Q(user_type='admin') | Q(is_staff=True)
-    ).distinct()
-    
-    context = {
-        'interviews': interviews,
-        'interviewers': interviewers,
-        'can_manage_interviews': can_manage_applications(request.user),
-        'is_candidate': request.user.is_candidate(),
-        'total_interviews': stats['total'],
-        'today_interviews': stats['today'],
-        'completed_interviews': stats['completed'],
-    }
-    
-    return render(request, 'calendar_app/interview_list.html', context)
-
-
-@login_required
 @require_http_methods(["POST"])
 def save_interview_feedback(request, interview_id):
     try:

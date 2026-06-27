@@ -1,0 +1,77 @@
+{# Универсальная карточка вакансии.
+   Параметры (через context):
+     - job: модель Job
+     - layout: "list" (default) | "card" | "compact"
+     - show_save: bool — показывать ли кнопку «В избранное»
+     - show_description: bool — обрезать ли описание
+#}
+{% load core_extras %}
+<div class="card job-card h-100">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="{% if layout == 'compact' %}col-12{% else %}col-md-8{% endif %}">
+                <div class="d-flex align-items-start mb-2">
+                    {% if layout != 'compact' %}
+                        <div class="company-avatar company-avatar-sm me-3" aria-hidden="true">
+                            {{ job.company.name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-2">
+                            <a href="{% url 'core:job_detail' job.pk %}" class="job-title">
+                                {{ job.title }}
+                            </a>
+                        </h5>
+                        <p class="company-name mb-2">
+                            <i class="fas fa-building me-1"></i>
+                            {{ job.company.name }}
+                        </p>
+                    </div>
+                </div>
+                {% if show_description|default_if_none:True %}
+                    <p class="card-text {% if layout == 'card' %}text-truncate-3 flex-grow-1{% else %}text-truncate-2{% endif %}">
+                        {{ job.description|truncatewords:30 }}
+                    </p>
+                {% endif %}
+                <div class="job-meta mt-3">
+                    <span class="badge badge-experience me-2">
+                        {{ job.get_experience_level_display }}
+                    </span>
+                    {% if job.remote_work %}
+                        <span class="badge badge-remote me-2">
+                            <i class="fas fa-home me-1"></i>Удаленно
+                        </span>
+                    {% endif %}
+                    <span class="text-muted">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
+                    </span>
+                </div>
+            </div>
+            <div class="{% if layout == 'compact' %}col-12{% else %}col-md-4{% endif %} text-md-end mt-3 mt-md-0">
+                {% if job.salary_min or job.salary_max %}
+                    <div class="salary-range mb-3">
+                        <i class="fas fa-ruble-sign me-1"></i>
+                        {% if job.salary_min and job.salary_max %}
+                            {{ job.salary_min|floatformat:0 }} - {{ job.salary_max|floatformat:0 }}
+                        {% elif job.salary_min %}
+                            от {{ job.salary_min|floatformat:0 }}
+                        {% elif job.salary_max %}
+                            до {{ job.salary_max|floatformat:0 }}
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>{{ job.created_at|timesince }} назад
+                    </small>
+                </div>
+                <a href="{% url 'core:job_detail' job.pk %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>Подробнее
+                </a>
+                {% if show_save and user.is_authenticated %}
+                    {% show_save_button job %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

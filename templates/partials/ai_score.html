@@ -1,0 +1,23 @@
+{# AI score с прогресс-баром.
+   Параметры:
+     - score: float 0..1 (или None — тогда показывается "Анализ...")
+     - show_progress: bool (default True)
+#}
+{% load core_extras %}
+{% if score %}
+    <div class="d-flex align-items-center">
+        {% if show_progress|default_if_none:True %}
+            <div class="progress me-2" style="width: 60px; height: 8px;">
+                <div class="progress-bar bg-{{ score|ai_score_color }}"
+                     style="width: {% widthratio score 1 100 %}%"></div>
+            </div>
+        {% endif %}
+        <span class="ai-score badge bg-{{ score|ai_score_color }}">
+            {{ score|floatformat:2 }}
+        </span>
+    </div>
+{% else %}
+    <span class="badge bg-secondary">
+        <i class="fas fa-robot me-1"></i>Анализ...
+    </span>
+{% endif %}

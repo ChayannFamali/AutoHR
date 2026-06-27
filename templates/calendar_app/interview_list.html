@@ -3,48 +3,9 @@
 
 {% block title %}Собеседования - AutoHR{% endblock %}
 
-{% block extra_css %}
-<style>
-.avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.interview-card {
-    transition: box-shadow 0.2s ease;
-}
-
-.interview-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.interview-card.scheduled {
-    border-left: 4px solid #ffc107;
-}
-
-.interview-card.confirmed {
-    border-left: 4px solid #198754;
-}
-
-.interview-card.completed {
-    border-left: 4px solid #0dcaf0;
-}
-
-.interview-card.cancelled {
-    border-left: 4px solid #dc3545;
-}
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container-fluid my-4">
-    
+
     <div class="row mb-4">
         <div class="col-md-8">
             <h1 class="h2">
@@ -67,7 +28,7 @@
         </div>
     </div>
 
-    
+
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card">
@@ -77,18 +38,10 @@
                             <label class="form-label">Статус</label>
                             <select name="status" class="form-select">
                                 <option value="">Все статусы</option>
-                                <option value="scheduled" {% if request.GET.status == 'scheduled' %}selected{% endif %}>
-                                    Запланировано
-                                </option>
-                                <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>
-                                    Подтверждено
-                                </option>
-                                <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>
-                                    Завершено
-                                </option>
-                                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>
-                                    Отменено
-                                </option>
+                                <option value="scheduled" {% if request.GET.status == 'scheduled' %}selected{% endif %}>Запланировано</option>
+                                <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Подтверждено</option>
+                                <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Завершено</option>
+                                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Отменено</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -108,8 +61,7 @@
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary me-2">
-                                <i class="fas fa-search me-1"></i>
-                                Фильтр
+                                <i class="fas fa-search me-1"></i>Фильтр
                             </button>
                             <a href="{% url 'calendar_app:interview_list' %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i>
@@ -124,27 +76,21 @@
         <div class="card-body">
             <div class="row text-center">
                 <div class="col-4">
-                    <div class="text-primary">
-                        <i class="fas fa-calendar-check fa-2x"></i>
-                    </div>
+                    <div class="text-primary"><i class="fas fa-calendar-check fa-2x"></i></div>
                     <div class="mt-2">
                         <div class="fw-bold">{{ total_interviews }}</div>
                         <small class="text-muted">Всего</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="text-warning">
-                        <i class="fas fa-clock fa-2x"></i>
-                    </div>
+                    <div class="text-warning"><i class="fas fa-clock fa-2x"></i></div>
                     <div class="mt-2">
                         <div class="fw-bold">{{ today_interviews }}</div>
                         <small class="text-muted">Сегодня</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="text-success">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                    </div>
+                    <div class="text-success"><i class="fas fa-check-circle fa-2x"></i></div>
                     <div class="mt-2">
                         <div class="fw-bold">{{ completed_interviews }}</div>
                         <small class="text-muted">Завершено</small>
@@ -156,116 +102,12 @@
 </div>
     </div>
 
-    
+
     {% if interviews %}
         <div class="row">
             {% for interview in interviews %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card interview-card {{ interview.status }}" data-interview-id="{{ interview.id }}">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <div class="interview-time">
-                                <i class="fas fa-clock me-1"></i>
-                                {{ interview.scheduled_at|date:"d.m.Y H:i" }}
-                            </div>
-                            <span class="badge 
-                                {% if interview.status == 'scheduled' %}bg-warning text-dark
-                                {% elif interview.status == 'confirmed' %}bg-success
-                                {% elif interview.status == 'completed' %}bg-info
-                                {% elif interview.status == 'cancelled' %}bg-danger
-                                {% else %}bg-secondary{% endif %}">
-                                {{ interview.get_status_display }}
-                            </span>
-                        </div>
-                        <div class="card-body">
-                            
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar-circle bg-primary text-white me-3">
-                                    {{ interview.candidate.first_name.0 }}{{ interview.candidate.last_name.0 }}
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ interview.candidate.full_name }}</h6>
-                                    <small class="text-muted">{{ interview.candidate.email }}</small>
-                                </div>
-                            </div>
-
-                            
-                            <div class="mb-3">
-                                <div class="text-muted small">Вакансия:</div>
-                                <div class="fw-bold">{{ interview.application.job.title }}</div>
-                                <div class="text-muted small">{{ interview.application.job.company.name }}</div>
-                            </div>
-
-                            
-                            <div class="row text-center mb-3">
-                                <div class="col-6">
-                                    <div class="text-muted small">Тип</div>
-                                    <div class="fw-bold">{{ interview.interview_type.name }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="text-muted small">Формат</div>
-                                    <div class="fw-bold">
-                                        {% if interview.format == 'online' %}
-                                            <i class="fas fa-video me-1"></i>Онлайн
-                                        {% elif interview.format == 'offline' %}
-                                            <i class="fas fa-building me-1"></i>Офлайн
-                                        {% elif interview.format == 'phone' %}
-                                            <i class="fas fa-phone me-1"></i>Телефон
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            
-                            <div class="mb-3">
-                                <i class="fas fa-hourglass-half me-1 text-muted"></i>
-                                <span class="text-muted">{{ interview.duration_minutes }} минут</span>
-                            </div>
-
-                            
-                            <div class="mb-3">
-                                <div class="text-muted small">Интервьюер:</div>
-                                <div class="fw-bold">{{ interview.interviewer.get_full_name|default:interview.interviewer.username }}</div>
-                            </div>
-
-                            
-                            {% if interview.rating %}
-                                <div class="mb-3">
-                                    <div class="text-muted small">Оценка:</div>
-                                    <div>
-                                        {% for i in "12345" %}
-                                            <i class="fas fa-star {% if forloop.counter <= interview.rating %}text-warning{% else %}text-muted{% endif %}"></i>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-footer">
-                            <div class="btn-group w-100" role="group">
-                                <a href="{% url 'calendar_app:interview_detail' interview.pk %}" 
-                                   class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-eye me-1"></i>
-                                    Подробнее
-                                </a>
-                                {% if interview.status == 'scheduled' %}
-                                    <button type="button" class="btn btn-outline-success btn-sm" 
-                                            onclick="updateInterviewStatus({{ interview.id }}, 'confirmed')"
-                                            data-bs-toggle="tooltip" title="Подтвердить">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning btn-sm" 
-                                            onclick="openRescheduleModal({{ interview.id }})"
-                                            data-bs-toggle="tooltip" title="Перенести">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" 
-                                            onclick="updateInterviewStatus({{ interview.id }}, 'cancelled')"
-                                            data-bs-toggle="tooltip" title="Отменить">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-md-6 col-lg-4 mb-4" id="interview-wrap-{{ interview.id }}">
+                    {% include 'calendar_app/partials/interview_card.html' with interview=interview can_manage_applications=True %}
                 </div>
             {% endfor %}
         </div>
@@ -394,31 +236,23 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Место/Ссылка</label>
-                            <input type="text" name="location" class="form-control" 
+                            <input type="text" name="location" class="form-control"
                                    placeholder="Адрес офиса или ссылка на видеоконференцию">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Заметки для подготовки</label>
-                        <textarea name="notes" class="form-control" rows="3" 
+                        <textarea name="notes" class="form-control" rows="3"
                                   placeholder="Дополнительная информация для подготовки к собеседованию"></textarea>
-                    </div>
-
-                    
-                    <div class="alert alert-info d-none" id="interviewPreview">
-                        <h6><i class="fas fa-eye me-2"></i>Предварительный просмотр:</h6>
-                        <div id="previewContent"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>
-                    Отмена
+                    <i class="fas fa-times me-1"></i>Отмена
                 </button>
-                <button type="button" class="btn btn-primary" id="scheduleSubmitBtn">
-                    <i class="fas fa-save me-1"></i>
-                    Запланировать
+                <button type="submit" form="scheduleForm" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Запланировать
                 </button>
             </div>
         </div>
@@ -429,13 +263,17 @@
 <div class="modal fade" id="rescheduleModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Перенос собеседования</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="rescheduleForm">
-                    {% csrf_token %}
+            <form id="rescheduleForm"
+                  hx-post="{% url 'core:reschedule_interview_htmx' 0 %}"
+                  hx-target="#interview-wrap-0"
+                  hx-swap="outerHTML"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-on::after-request="if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide()">
+                <div class="modal-header">
+                    <h5 class="modal-title">Перенос собеседования</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Новая дата</label>
@@ -450,252 +288,23 @@
                         <label class="form-label">Причина переноса</label>
                         <textarea name="reason" class="form-control" rows="3"></textarea>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-warning" onclick="submitReschedule()">Перенести</button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-warning">Перенести</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-let currentInterviewId = null;
-
-// Функция для получения CSRF токена
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Функция для показа уведомлений
-function showNotification(message, type) {
-    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
-             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', alertHtml);
-    
-    setTimeout(() => {
-        const alert = document.querySelector('.alert:last-child');
-        if (alert) alert.remove();
-    }, 3000);
-}
-
-// Функция для обновления статуса собеседования
-function updateInterviewStatus(interviewId, status) {
-    const statusNames = {
-        'confirmed': 'подтвердить',
-        'completed': 'завершить', 
-        'cancelled': 'отменить'
+    /* URL endpoint для interview_list.js */
+    window.AutoHR = window.AutoHR || {};
+    window.AutoHR.urls = window.AutoHR.urls || {};
+    window.AutoHR.urls.interviews = {
+        reschedule: '{% url "core:reschedule_interview_htmx" 0 %}',
     };
-    
-    if (confirm(`Вы уверены, что хотите ${statusNames[status]} это собеседование?`)) {
-        fetch(`/calendar/interviews/${interviewId}/update-status/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ 'status': status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification(data.message, 'success');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Произошла ошибка', 'error');
-        });
-    }
-}
-
-// Функция для открытия модального окна переноса
-function openRescheduleModal(interviewId) {
-    currentInterviewId = interviewId;
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    document.querySelector('#rescheduleModal input[name="date"]').min = tomorrow.toISOString().split('T')[0];
-    
-    document.getElementById('rescheduleForm').reset();
-    
-    const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
-    modal.show();
-}
-
-// Функция для отправки формы переноса
-function submitReschedule() {
-    const form = document.getElementById('rescheduleForm');
-    const formData = new FormData(form);
-    
-    fetch(`/calendar/interviews/${currentInterviewId}/reschedule/`, {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-CSRFToken': getCookie('csrftoken') }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка', 'error');
-    });
-}
-
-// Инициализация после загрузки DOM
-document.addEventListener('DOMContentLoaded', function() {
-    // Работа с формой планирования
-    const scheduleForm = document.getElementById('scheduleForm');
-    const submitBtn = document.getElementById('scheduleSubmitBtn');
-    const previewDiv = document.getElementById('interviewPreview');
-    const previewContent = document.getElementById('previewContent');
-    
-    // Автозаполнение длительности
-    const interviewTypeSelect = scheduleForm.querySelector('[name="interview_type"]');
-    const durationInput = scheduleForm.querySelector('[name="duration"]');
-    
-    interviewTypeSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.dataset.duration) {
-            durationInput.value = selectedOption.dataset.duration;
-        }
-        updatePreview();
-    });
-    
-    // Функция обновления предпросмотра
-    function updatePreview() {
-        const formData = new FormData(scheduleForm);
-        const application = scheduleForm.querySelector('[name="application"]');
-        const interviewType = scheduleForm.querySelector('[name="interview_type"]');
-        const date = formData.get('date');
-        const time = formData.get('time');
-        const format = scheduleForm.querySelector('[name="format"]');
-        
-        if (application.value && interviewType.value && date && time) {
-            const selectedApp = application.options[application.selectedIndex].text;
-            const selectedType = interviewType.options[interviewType.selectedIndex].text;
-            const selectedFormat = format.options[format.selectedIndex].text;
-            
-            previewContent.innerHTML = `
-                <strong>Кандидат:</strong> ${selectedApp}<br>
-                <strong>Тип:</strong> ${selectedType}<br>
-                <strong>Дата и время:</strong> ${formatDate(date)} в ${time}<br>
-                <strong>Формат:</strong> ${selectedFormat}
-            `;
-            previewDiv.classList.remove('d-none');
-        } else {
-            previewDiv.classList.add('d-none');
-        }
-    }
-    
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-    
-    // Обновление предпросмотра при изменении полей
-    scheduleForm.addEventListener('change', updatePreview);
-    scheduleForm.addEventListener('input', updatePreview);
-    
-    // Отправка формы планирования
-    submitBtn.addEventListener('click', function() {
-        if (scheduleForm.checkValidity()) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Создание...';
-            
-            const formData = new FormData(scheduleForm);
-            
-            fetch(scheduleForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-                    modal.hide();
-                    scheduleForm.reset();
-                    previewDiv.classList.add('d-none');
-                    
-                    showNotification(data.message, 'success');
-                    
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Произошла ошибка при отправке формы', 'error');
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
-            });
-        } else {
-            scheduleForm.reportValidity();
-        }
-    });
-    
-    // Сброс формы при закрытии модального окна
-    document.getElementById('scheduleModal').addEventListener('hidden.bs.modal', function() {
-        scheduleForm.reset();
-        previewDiv.classList.add('d-none');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Запланировать';
-    });
-    
-    // Установка минимальной даты
-    const dateInput = scheduleForm.querySelector('[name="date"]');
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
-    
-    // Инициализация тултипов
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
 </script>
+<script src="{% static 'vendor/js/pages/interview_list.js' %}"></script>
 {% endblock %}

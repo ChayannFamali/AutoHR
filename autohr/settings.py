@@ -27,6 +27,17 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 DATABASE_URL = os.getenv('DATABASE_URL')
+
+# AI-движок: можно полностью отключить (см. docs/AIisOptional.md)
+AI_ENABLED = os.getenv('AI_ENABLED', 'false').lower() == 'true'
+
+# Redis/Celery (см. autohr/celery.py)
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
+CELERY_TIMEZONE = TIME_ZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_BEAT_SCHEDULE = {}
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -49,6 +60,7 @@ INSTALLED_APPS = [
     "core",
     "resume",
     "analytics",
+    "messaging",
 ]
 
 MIDDLEWARE = [
@@ -59,7 +71,19 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Кастомная CORS middleware (выключена по умолчанию; включить через CORS_ENABLED=True)
+    "core.cors.CORSMiddleware",
 ]
+
+# ===================== CORS (Этап 5.2) =====================
+# По умолчанию выключен — для локального dev same-origin достаточно.
+# Включить для внешнего фронта: CORS_ENABLED=True + CORS_ALLOWED_ORIGINS.
+CORS_ENABLED = os.getenv('CORS_ENABLED', 'False').lower() == 'true'
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
+
+# ===================== Бэкапы (Этап 5.7) =====================
+BACKUP_DIR = os.getenv('BACKUP_DIR', str(BASE_DIR / 'backups'))
 
 ROOT_URLCONF = "autohr.urls"
 
@@ -73,6 +97,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "autohr.context_processors.ai_flag",
             ],
         },
     },
@@ -83,13 +108,25 @@ WSGI_APPLICATION = "autohr.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+#
+# Если задан DATABASE_URL (например, в проде через docker-compose) — используется он.
+# Иначе падаем обратно на SQLite для локальной разработки.
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+        ),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -174,6 +211,11 @@ LOGGING = {
         'ai_analysis': {
             'handlers': ['console'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
